@@ -29,7 +29,11 @@ WebServer::WebServer(const std::string &host, int port) : Port(port), Host(host)
 
     setNonBlocking(serverFd);
 
-    pollFd = POLLER();
+    #ifdef __APPLE__
+        pollFd = POLLER();
+    #else
+        pollFd = POLLER(0);
+    #endif
     if (pollFd == -1) {
         perror("Poller creation failed");
         exit(EXIT_FAILURE);
