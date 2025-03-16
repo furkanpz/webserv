@@ -1,9 +1,9 @@
-#include "HPP/webserv.hpp"
-#include "HPP/WebServer.hpp"
+#include "webserv.hpp"
+#include "WebServer.hpp"
 
 int main(int ac, char **av)
 {
-    if (ac == 2)
+    if (ac == 1)
     {
         (void)av; // wall werror wextra sussun diye koydum şimdilik
         WebServer serv("127.0.0.1", 8080);

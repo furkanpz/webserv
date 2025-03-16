@@ -8,7 +8,7 @@ CFLAGS =  -Wall -Wextra -Werror -std=c++98
 OBJS = $(SRCS:.cpp=.o)
 
 %.o: %.cpp
-		$(CC) $(CFLAGS) -c $< -o $@
+		$(CC) $(CFLAGS) -I./inc -c $< -o $@
 
 $(NAME): $(OBJS)
 		$(CC) $(CFLAGS) -o $(NAME) $(OBJS)

@@ -1,6 +1,5 @@
-#include "HPP/webserv.hpp"
-#include "HPP/Utils.hpp"
-#include "HPP/Utils.hpp"
+#include "webserv.hpp"
+#include "Utils.hpp"
 
 std::string Utils::intToString(int num)
 {
