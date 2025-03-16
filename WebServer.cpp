@@ -1,5 +1,5 @@
-#include "WebServer.hpp"
-
+#include "HPP/WebServer.hpp"
+#include "HPP/Utils.hpp"
     
 WebServer::WebServer(const std::string &host, int port) : Host(host), Port(port) {
     addrLen = sizeof(address);
@@ -43,9 +43,11 @@ void WebServer::start() {
         char buffer[30000] = {0};
         read(socketServ, buffer, 30000);
         std::cout << "Received request:\n" << buffer << std::endl;
-        
-        const char *response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 13\r\n\r\nHello, World!";
-        send(socketServ, response, strlen(response), 0);
+        std::string content = Utils::readFile("index.html"); 
+        std::string contentLengthStr = Utils::intToString(content.length());
+        std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + 
+                               contentLengthStr + "\r\n\r\n" + content;
+        send(socketServ, response.c_str(), response.length(), 0);
         close(socketServ);
     }
 }
