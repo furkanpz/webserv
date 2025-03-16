@@ -11,11 +11,11 @@
 
 #ifdef __APPLE__
     #include <sys/event.h>
-    #define POLLER kqueue
+    #define POLLER() kqueue()
     #define EVENT_STRUCT struct kevent
 #else
     #include <sys/epoll.h>
-    #define POLLER epoll_create1
+    #define POLLER() epoll_create1(0)
     #define EVENT_STRUCT struct epoll_event
 #endif
 
@@ -23,14 +23,16 @@
 
 
 class WebServer {
+    private:
+        void ServerResponse(int);
+        void setNonBlocking(int fd);
+
     public:
-        int serverFd, pollFd, addrLen;
-        int Port;
+        int serverFd, pollFd, addrLen, Port;
         std::string Host;
         struct sockaddr_in address;
 
         WebServer(const std::string &host, int port);
         ~WebServer();
         void start();
-        void setNonBlocking(int fd);
 };
