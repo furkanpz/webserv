@@ -26,8 +26,8 @@ WebServer::WebServer(const std::string &host, int port) : Port(port), Host(host)
     setNonBlocking(serverFd);
 
     pollFd = POLLER();
-    if (pollFd == -1) throw ServerExcp();
-
+    if (pollFd == -1){close(serverFd); throw ServerExcp();
+}
     EVENT_STRUCT event;
     #ifdef __APPLE__
         EV_SET(&event, serverFd, EVFILT_READ, EV_ADD, 0, 0, NULL);
