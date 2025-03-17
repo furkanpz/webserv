@@ -3,6 +3,9 @@
 #include "WebServer.hpp"
 #include <iostream>
 #include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <unistd.h>
 #include <cstring>
@@ -15,7 +18,7 @@
     #define EVENT_STRUCT struct kevent
 #else
     #include <sys/epoll.h>
-    #define POLLER() epoll_create1(0)
+    #define POLLER() epoll_create(1024)
     #define EVENT_STRUCT struct epoll_event
 #endif
 
@@ -35,4 +38,9 @@ class WebServer {
         WebServer(const std::string &host, int port);
         ~WebServer();
         void start();
+
+        class ServerExcp : public std::exception {
+            public:
+				virtual const char *what() const throw();
+        };
 };

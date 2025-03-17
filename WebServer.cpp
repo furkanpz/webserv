@@ -2,38 +2,31 @@
 #include "Utils.hpp"
 
 WebServer::WebServer(const std::string &host, int port) : Port(port), Host(host) {
+    
+    
     addrLen = sizeof(address);
     address.sin_family = AF_INET;
     address.sin_port = htons(Port);
-    if (host == "localhost") {
-        address.sin_addr.s_addr = INADDR_ANY;
-    } else {
-        address.sin_addr.s_addr = inet_addr(host.c_str());
-    }
+    
+    struct addrinfo hints, *res;
 
-    serverFd = socket(AF_INET, SOCK_STREAM, 0);
-    if (serverFd == 0) {
-        perror("Socket failed");
-        exit(EXIT_FAILURE);
-    }
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_PASSIVE;
 
-    if (bind(serverFd, (struct sockaddr *)&address, sizeof(address)) < 0) {
-        perror("Bind failed");
-        exit(EXIT_FAILURE);
-    }
+    int status = getaddrinfo(host.c_str(), Utils::intToString(Port).c_str(), &hints, &res);
+    if (status != 0) {freeaddrinfo(res); throw ServerExcp();}
 
-    if (listen(serverFd, SOMAXCONN) < 0) {
-        perror("Listen failed");
-        exit(EXIT_FAILURE);
-    }
+    serverFd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+    if (serverFd == 0) {freeaddrinfo(res); close(serverFd); throw ServerExcp();}
+    if (bind(serverFd, res->ai_addr, res->ai_addrlen) < 0) {freeaddrinfo(res); close(serverFd); throw ServerExcp();}
+    freeaddrinfo(res);
+    if (listen(serverFd, SOMAXCONN) < 0) {close(serverFd); throw ServerExcp();}
 
     setNonBlocking(serverFd);
 
     pollFd = POLLER();
-    if (pollFd == -1) {
-        perror("Poller creation failed");
-        exit(EXIT_FAILURE);
-    }
+    if (pollFd == -1) throw ServerExcp();
 
     EVENT_STRUCT event;
     #ifdef __APPLE__
@@ -47,12 +40,14 @@ WebServer::WebServer(const std::string &host, int port) : Port(port), Host(host)
 }
 
 
-WebServer::~WebServer() {
+WebServer::~WebServer()
+{
     close(serverFd);
     close(pollFd);
 }
 
-void WebServer::setNonBlocking(int fd) {
+void WebServer::setNonBlocking(int fd)
+{
     int flags = fcntl(fd, F_GETFL, 0);
     fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
@@ -109,4 +104,9 @@ void WebServer::start() {
                 ServerResponse(eventFd);
         }
     }
+}
+
+const char *WebServer::ServerExcp::what() const throw()
+{
+    return "Couldn't create the server!";
 }
