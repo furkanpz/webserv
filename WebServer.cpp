@@ -59,11 +59,11 @@ void WebServer::ServerResponse(int eventFd)
     if (bytesRead <= 0) {
         close(eventFd);
     } else {
-        std::cout << "Received request:\n" << buffer << std::endl;
-        std::string content = Utils::readFile("index.html"); 
-        std::string contentLengthStr = Utils::intToString(content.length());
+        //std::cout << "Received request:\n" << buffer << std::endl;
+        std::string file = Utils::parseContent(buffer);
+        std::string content = Utils::readFile(file); 
         std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + 
-                            contentLengthStr + "\r\n\r\n" + content;
+                            Utils::intToString(content.length()) + "\r\n\r\n" + content;
         send(eventFd, response.c_str(), response.length(), 0);
         close(eventFd);
     }
