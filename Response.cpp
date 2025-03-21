@@ -1,11 +1,11 @@
 #include "Response.hpp"
 
-std::string Response::getRequestType(void) const
+int Response::getRequestType(void) const
 {
     return requestType;
 }
 
-void Response::setRequestType(std::string _requestType)
+void Response::setRequestType(int _requestType)
 {
     requestType = _requestType;
 }
@@ -30,7 +30,17 @@ void Response::setContent(std::string _content)
     content = _content;
 }
 
-Response::Response() : requestType(""), responseCode(-1), content("")
+std::string Response::getFile(void) const
+{
+    return file;
+}
+
+void Response::setFile(std::string _file)
+{
+    file = _file;
+}
+
+Response::Response() : requestType(-1), responseCode(-1), content("")
 {
     
 }

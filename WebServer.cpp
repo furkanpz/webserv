@@ -1,33 +1,37 @@
 #include "WebServer.hpp"
 #include "Utils.hpp"
 
-WebServer::WebServer(const std::string &host, int port) : Port(port), Host(host) {
-    
-    
+static const std::string methods[3] = {"GET", "POST", "DELETE"};
+
+int WebServer::SocketCreator(const std::string &host){
     addrLen = sizeof(address);
     address.sin_family = AF_INET;
     address.sin_port = htons(Port);
-    
-    struct addrinfo hints, *res;
 
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE;
+    std::memset(&first, 0, sizeof(first));
 
-    int status = getaddrinfo(host.c_str(), Utils::intToString(Port).c_str(), &hints, &res);
-    if (status != 0) {freeaddrinfo(res); throw ServerExcp();}
+    first.ai_family = AF_INET;
+    first.ai_socktype = SOCK_STREAM;
+    first.ai_flags = AI_PASSIVE;
 
-    serverFd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-    if (serverFd == 0) {freeaddrinfo(res); close(serverFd); throw ServerExcp();}
-    if (bind(serverFd, res->ai_addr, res->ai_addrlen) < 0) {freeaddrinfo(res); close(serverFd); throw ServerExcp();}
+    int status = getaddrinfo(host.c_str(), Utils::intToString(Port).c_str(), &first, &res);
+    if (status != 0) {freeaddrinfo(res); throw ServerExcp("getaddrinfo Error");}
+    return (socket(res->ai_family, res->ai_socktype, res->ai_protocol));
+}
+
+
+WebServer::WebServer(const std::string &host, int port) : Port(port), Host(host) {
+    serverFd = SocketCreator(host);
+    if (serverFd == 0) {freeaddrinfo(res); close(serverFd); throw ServerExcp("Socket Error");}
+    if (bind(serverFd, res->ai_addr, res->ai_addrlen) < 0) {freeaddrinfo(res); close(serverFd); throw ServerExcp("Bind Error");}
     freeaddrinfo(res);
-    if (listen(serverFd, SOMAXCONN) < 0) {close(serverFd); throw ServerExcp();}
+    if (listen(serverFd, SOMAXCONN) < 0) {close(serverFd); throw ServerExcp("Listen Error");}
 
     setNonBlocking(serverFd);
 
     pollFd = POLLER();
-    if (pollFd == -1){close(serverFd); throw ServerExcp();
-}
+    if (pollFd == -1){close(serverFd); throw ServerExcp("Poll Error");}
+    
     EVENT_STRUCT event;
     #ifdef __APPLE__
         EV_SET(&event, serverFd, EVFILT_READ, EV_ADD, 0, 0, NULL);
@@ -49,28 +53,49 @@ WebServer::~WebServer()
 void WebServer::setNonBlocking(int fd)
 {
     int flags = fcntl(fd, F_GETFL, 0);
-    fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+    if (flags == -1)
+        throw ServerExcp("Fcntl Error");
+    int test = fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+    if (test == -1)
+        throw ServerExcp("Fcntl Error");
 }
 
 void WebServer::ServerResponse(int eventFd)
 {
+    Response val;
     char buffer[1024] = {0};
     int bytesRead = read(eventFd, buffer, sizeof(buffer));
     if (bytesRead <= 0) {
-        close(eventFd);
+        #ifndef __APPLE__
+            epoll_ctl(pollFd, EPOLL_CTL_DEL, eventFd, NULL);
+        #else
+            EV_SET(&event, eventFd, EVFILT_READ, EV_DELETE, 0, 0, NULL);
+            kevent(pollFd, &event, 1, NULL, 0, NULL);
+        #endif
+            close(eventFd);
+        return ;
     } else {
-        //std::cout << "Received request:\n" << buffer << std::endl;
-        std::string file = Utils::parseContent(buffer);
-        std::string content = Utils::readFile(file); 
+        Utils::parseContent(buffer, val);
         std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + 
-                            Utils::intToString(content.length()) + "\r\n\r\n" + content;
+                            Utils::intToString(val.getContent().length()) + "\r\n\r\n" + val.getContent();
         send(eventFd, response.c_str(), response.length(), 0);
         close(eventFd);
+    }
+    if (val.getResponseCode() == OK)
+    {
+        std::cout << "\033[32m" << methods[MAX_INT + val.getRequestType()] << "\033[32m: \033[32m" << val.getFile() << "\033[32m" << std::endl;
+        std::cout << "\033[0m";
+    }
+    else
+    {
+        std::cout << "\033[31" << methods[MAX_INT + val.getRequestType()] << "\033[31: \033[31" << val.getFile() << "\033[31" << std::endl;
+        std::cout << "\033[0m";
     }
 }
 
 void WebServer::start() {
-    std::cout << "Server listening on " << Host << ":" << Port << "...\n";
+    std::cout << "\033[35mServer listening on \033[35m" << Host << "\033[35m" << "\033[35m:\033[35m" << Port << "\033[35m" << "\033[35m...\033[35m" << std::endl;
+    std::cout << "\033[0m";
     EVENT_STRUCT events[MAX_EVENTS];
 
     while (true) {
@@ -108,5 +133,8 @@ void WebServer::start() {
 
 const char *WebServer::ServerExcp::what() const throw()
 {
-    return "Couldn't create the server!";
+    return excp.c_str();
 }
+
+WebServer::ServerExcp::ServerExcp(const std::string &err) : excp(err + ": Couldn't create the server!") {}
+WebServer::ServerExcp::~ServerExcp() throw() {}

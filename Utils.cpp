@@ -8,22 +8,36 @@ std::string Utils::intToString(int num)
     return ss.str();
 }
 
-std::string Utils::readFile(const std::string &fileName)
+std::string Utils::readFile(const std::string &fileName, Response &response, int code)
 {
     std::ifstream file(fileName.c_str());
     if (!file) {
-        return "notFound.html";
+        response.setResponseCode(code);
+        return readFile("notFound.html", response, NOTFOUND);
     }
+    response.setResponseCode(code);
     std::stringstream buffer;
     buffer << file.rdbuf();
     return buffer.str();
 }
 
-std::string Utils::parseContent(char *buffer)
+void Utils::parseContent(char *buffer, Response &response)
 {
-     std::string request(buffer);
+    std::string request(buffer);
      
-     size_t pos = request.find(" ");
+    response.setFile(getFileName(request, response));
+    response.setContent(readFile(response.getFile(), response));
+    if (request.find("GET ") == 0)
+        response.setRequestType(GET);
+    else if(request.find("POST ") == 0)
+        response.setRequestType(POST);
+    else if (request.find("DELETE ") == 0)
+        response.setRequestType(DELETE);
+}
+
+std::string Utils::getFileName(std::string request, Response &response)
+{
+    size_t pos = request.find(" ");
      if (pos == std::string::npos) {
          return "";
      }
@@ -36,6 +50,5 @@ std::string Utils::parseContent(char *buffer)
 
      if (request.substr(start, end - start) == "/")
         return ("index.html");
-     std::string url = request.substr(start + 1, end - start - 1);
-     return url;
+     return (request.substr(start + 1, end - start - 1));
 }

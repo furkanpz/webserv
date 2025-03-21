@@ -27,20 +27,29 @@
 
 class WebServer {
     private:
+        std::string Host;
+        int serverFd, pollFd, addrLen, Port;        
+        struct addrinfo first, *res;
+
+    private:
         void ServerResponse(int);
         void setNonBlocking(int fd);
-
-    public:
-        int serverFd, pollFd, addrLen, Port;
-        std::string Host;
+        int SocketCreator(const std::string &host);
         struct sockaddr_in address;
 
+    public:
+        void start();
+    
+    public:
         WebServer(const std::string &host, int port);
         ~WebServer();
-        void start();
 
         class ServerExcp : public std::exception {
+            private:
+                std::string excp;
             public:
 				virtual const char *what() const throw();
+                ServerExcp(const std::string &);
+                ~ServerExcp() throw();
         };
 };

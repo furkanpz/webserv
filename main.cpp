@@ -7,7 +7,7 @@ int main(int ac, char **av)
     {
         (void)av; // wall werror wextra sussun diye koydum şimdilik
         try {
-            WebServer serv("127.0.0.1", 3434);
+            WebServer serv("127.0.0.1", 3131);
             serv.start();
         }
         catch (std::exception &e)

@@ -1,10 +1,10 @@
 NAME = webserv
 
-SRCS = main.cpp WebServer.cpp Utils.cpp
+SRCS = main.cpp WebServer.cpp Utils.cpp Response.cpp
 
 CC = c++
 RM = rm -rf
-CFLAGS = # -Wall -Wextra -Werror -std=c++98
+CFLAGS = -std=c++98 # -Wall -Wextra -Werror -std=c++98
 OBJS = $(SRCS:.cpp=.o)
 
 %.o: %.cpp
