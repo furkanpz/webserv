@@ -12,14 +12,27 @@ std::string Utils::readFile(const std::string &fileName, Response &response, int
 {
     std::ifstream file(fileName.c_str());
     if (!file) {
+        size_t dotPos = fileName.find_last_of(".");
+        if (dotPos == std::string::npos) {
+            response.setResponseCode(NOTFOUND);
+            std::ifstream nf("notFound.html");
+            std::stringstream buffer;
+            if (nf) {
+                buffer << nf.rdbuf();
+                return buffer.str();
+            }
+            return "<h1>404 Not Found</h1>";
+        }
         response.setResponseCode(code);
-        return readFile("notFound.html", response, NOTFOUND);
+        return "";
     }
+
     response.setResponseCode(code);
     std::stringstream buffer;
     buffer << file.rdbuf();
     return buffer.str();
 }
+
 
 void Utils::parseContent(char *buffer, Response &response)
 {
@@ -35,20 +48,26 @@ void Utils::parseContent(char *buffer, Response &response)
         response.setRequestType(DELETE);
 }
 
+
 std::string Utils::getFileName(std::string request, Response &response)
 {
     size_t pos = request.find(" ");
-     if (pos == std::string::npos) {
-         return "";
-     }
+    if (pos == std::string::npos) {
+        return "";
+    }
 
-     size_t start = pos + 1;
-     size_t end = request.find(" ", start);
-     if (end == std::string::npos) {
-         return "";
-     }
+    size_t start = pos + 1;
+    size_t end = request.find(" ", start);
+    if (end == std::string::npos) {
+        return "";
+    }
 
-     if (request.substr(start, end - start) == "/")
-        return ("index.html");
-     return (request.substr(start + 1, end - start - 1));
+    std::string path = request.substr(start, end - start);
+    if (path == "/")
+        return "index.html";
+
+    if (path[0] == '/')
+        path = path.substr(1);
+    
+    return path;
 }

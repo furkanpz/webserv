@@ -81,21 +81,13 @@ void WebServer::ServerResponse(int eventFd)
         send(eventFd, response.c_str(), response.length(), 0);
         close(eventFd);
     }
-    if (val.getResponseCode() == OK)
-    {
-        std::cout << "\033[32m" << methods[MAX_INT + val.getRequestType()] << "\033[32m: \033[32m" << val.getFile() << "\033[32m" << std::endl;
-        std::cout << "\033[0m";
-    }
-    else
-    {
-        std::cout << "\033[31" << methods[MAX_INT + val.getRequestType()] << "\033[31: \033[31" << val.getFile() << "\033[31" << std::endl;
-        std::cout << "\033[0m";
-    }
+    std::cout << methods[MAX_INT + val.getRequestType()] 
+              << ": " << val.getFile() << "/ Response code: " << val.getResponseCode() << std::endl;
+
 }
 
 void WebServer::start() {
-    std::cout << "\033[35mServer listening on \033[35m" << Host << "\033[35m" << "\033[35m:\033[35m" << Port << "\033[35m" << "\033[35m...\033[35m" << std::endl;
-    std::cout << "\033[0m";
+    std::cout << "Server listening on " << Host << ":" << Port << "..." << std::endl;
     EVENT_STRUCT events[MAX_EVENTS];
 
     while (true) {
