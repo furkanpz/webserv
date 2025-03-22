@@ -10,8 +10,8 @@
 #include <random>
 
 #define SERVER_IP "127.0.0.1"
-#define SERVER_PORT 4444
-#define CLIENT_COUNT 50  // Aynı anda 100 istemci
+#define SERVER_PORT 3131
+#define CLIENT_COUNT 5  // Aynı anda 100 istemci
 #define REQUESTS_PER_CLIENT 5  // Her istemci 5 istek göndersin
 
 std::vector<std::string> methods = {"GET", "POST", "DELETE"};

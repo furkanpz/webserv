@@ -92,9 +92,11 @@ void WebServer::start() {
 
                     std::cout << "New client connected: " << clientFd << std::endl;
 
+                    std::cout << "i size:" << i << std::endl;
                     bool added = false;
                     for (int j = 1; j < MAX_EVENTS; j++) {
                         if (pollFd[j].fd == 0) { 
+                            std::cout << "j size:" << j << std::endl;
                             pollFd[j].fd = clientFd;
                             pollFd[j].events = POLLIN;
                             added = true;
