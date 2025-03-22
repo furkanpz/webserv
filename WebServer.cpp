@@ -29,25 +29,16 @@ WebServer::WebServer(const std::string &host, int port) : Port(port), Host(host)
 
     setNonBlocking(serverFd);
 
-    pollFd = POLLER();
-    if (pollFd == -1){close(serverFd); throw ServerExcp("Poll Error");}
-    
-    EVENT_STRUCT event;
-    #ifdef __APPLE__
-        EV_SET(&event, serverFd, EVFILT_READ, EV_ADD, 0, 0, NULL);
-        kevent(pollFd, &event, 1, NULL, 0, NULL);
-    #else
-        event.data.fd = serverFd;
-        event.events = EPOLLIN;
-        epoll_ctl(pollFd, EPOLL_CTL_ADD, serverFd, &event);
-    #endif
+    pollFd = new pollfd[MAX_EVENTS];
+    pollFd[0].fd = serverFd;
+    pollFd[0].events = POLLIN;
 }
 
 
 WebServer::~WebServer()
 {
     close(serverFd);
-    close(pollFd);
+    delete[] pollFd;
 }
 
 void WebServer::setNonBlocking(int fd)
@@ -66,13 +57,7 @@ void WebServer::ServerResponse(int eventFd)
     char buffer[1024] = {0};
     int bytesRead = read(eventFd, buffer, sizeof(buffer));
     if (bytesRead <= 0) {
-        #ifndef __APPLE__
-            epoll_ctl(pollFd, EPOLL_CTL_DEL, eventFd, NULL);
-        #else
-            EV_SET(&event, eventFd, EVFILT_READ, EV_DELETE, 0, 0, NULL);
-            kevent(pollFd, &event, 1, NULL, 0, NULL);
-        #endif
-            close(eventFd);
+        close(eventFd);
         return ;
     } else {
         Utils::parseContent(buffer, val);
@@ -88,37 +73,46 @@ void WebServer::ServerResponse(int eventFd)
 
 void WebServer::start() {
     std::cout << "Server listening on " << Host << ":" << Port << "..." << std::endl;
-    EVENT_STRUCT events[MAX_EVENTS];
 
     while (true) {
-        #ifdef __APPLE__
-            int eventCount = kevent(pollFd, NULL, 0, events, MAX_EVENTS, NULL);
-        #else
-            int eventCount = epoll_wait(pollFd, events, MAX_EVENTS, -1);
-        #endif
-        for (int i = 0; i < eventCount; i++) {
-            #ifdef __APPLE__
-                int eventFd = events[i].ident;
-            #else
-                int eventFd = events[i].data.fd;
-            #endif
-            if (eventFd == serverFd) 
-            {
-                int clientFd = accept(serverFd, (struct sockaddr*)&address, (socklen_t*)&addrLen);
-                if (clientFd < 0) continue;
-                setNonBlocking(clientFd);
-                EVENT_STRUCT event;
-                #ifdef __APPLE__
-                    EV_SET(&event, clientFd, EVFILT_READ, EV_ADD, 0, 0, NULL);
-                    kevent(pollFd, &event, 1, NULL, 0, NULL);
-                #else
-                    event.data.fd = clientFd;
-                    event.events = EPOLLIN;
-                    epoll_ctl(pollFd, EPOLL_CTL_ADD, clientFd, &event);
-                #endif
-            } 
-            else
-                ServerResponse(eventFd);
+        int events = poll(pollFd, MAX_EVENTS, -1);
+        if (events < 0) {
+            throw ServerExcp("Poll Error");
+        }
+        std::cout <<"event: " <<  events << std::endl;
+
+        for (int i = 0; i < MAX_EVENTS; i++) {
+            if (pollFd[i].revents & POLLIN) {
+                if (pollFd[i].fd == serverFd) {
+                    int clientFd = accept(serverFd, (sockaddr *)&address, (socklen_t *)&addrLen);
+                    if (clientFd < 0) {
+                        std::cout << "Accept Error: " << strerror(errno) << std::endl;
+                        continue;
+                    }
+
+                    std::cout << "New client connected: " << clientFd << std::endl;
+
+                    bool added = false;
+                    for (int j = 1; j < MAX_EVENTS; j++) {
+                        if (pollFd[j].fd == 0) { 
+                            pollFd[j].fd = clientFd;
+                            pollFd[j].events = POLLIN;
+                            added = true;
+                            break;
+                        }
+                    }
+                    if (!added) {
+                        std::cout << "Max clients reached, unable to accept new connections!" << std::endl;
+                        close(clientFd);
+                    } else {
+                        setNonBlocking(clientFd); 
+                    }
+
+                } else {
+                    ServerResponse(pollFd[i].fd);
+                    pollFd[i].fd = 0;
+                }
+            }
         }
     }
 }

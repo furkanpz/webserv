@@ -15,6 +15,8 @@ OBJS = $(SRCS:.cpp=.o)
 
 $(NAME): $(OBJS)
 		$(CC) $(CFLAGS) -o $(NAME) $(OBJS)
+
+$(TESTERFILE): tester.cpp 
 		$(CC) ./tester.cpp -o tester
 
 all: $(NAME)
@@ -22,6 +24,11 @@ clean:
 	$(RM) $(OBJS)
 fclean: clean
 		$(RM) $(NAME)
+		$(RM) $(TESTERFILE)
 re: fclean all
 
-.PHONY: all clean fclean re
+
+
+tester: $(TESTERFILE)
+
+.PHONY: all clean fclean re tester

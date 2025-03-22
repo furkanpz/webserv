@@ -11,24 +11,15 @@
 #include <cstring>
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <poll.h>
 
-#ifdef __APPLE__
-    #include <sys/event.h>
-    #define POLLER() kqueue()
-    #define EVENT_STRUCT struct kevent
-#else
-    #include <sys/epoll.h>
-    #define POLLER() epoll_create(1024)
-    #define EVENT_STRUCT struct epoll_event
-#endif
-
-#define MAX_EVENTS 64
-
+#define MAX_EVENTS 500 
 
 class WebServer {
     private:
         std::string Host;
-        int serverFd, pollFd, addrLen, Port;        
+        int serverFd, addrLen, Port;
+        pollfd *pollFd;        
         struct addrinfo first, *res;
 
     private:

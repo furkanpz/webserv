@@ -6,15 +6,27 @@
 #include <cstring>
 #include <vector>
 #include <thread>
+#include <chrono>
+#include <random>
 
 #define SERVER_IP "127.0.0.1"
-#define SERVER_PORT 2323
-#define CLIENT_COUNT 20  
+#define SERVER_PORT 4444
+#define CLIENT_COUNT 50  // Aynı anda 100 istemci
+#define REQUESTS_PER_CLIENT 5  // Her istemci 5 istek göndersin
+
+std::vector<std::string> methods = {"GET", "POST", "DELETE"};
+std::vector<std::string> paths = {"/"};
+
+std::random_device rd;
+std::mt19937 gen(rd());
+std::uniform_int_distribution<> sleepTime(100, 500);  // Rastgele bekleme (100-500 ms)
+std::uniform_int_distribution<> methodDist(0, methods.size() - 1);
+std::uniform_int_distribution<> pathDist(0, paths.size() - 1);
 
 void sendRequest(int clientID, const std::string& method, const std::string& path, const std::string& body = "") {
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock == -1) {
-        std::cerr << "[İstemci " << clientID << "] Socket oluşturulamadı\n";
+        std::cerr << "[İstemci " << clientID << "] Socket oluşturulamadı!\n";
         return;
     }
 
@@ -24,14 +36,14 @@ void sendRequest(int clientID, const std::string& method, const std::string& pat
     inet_pton(AF_INET, SERVER_IP, &serverAddr.sin_addr);
 
     if (connect(sock, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
-        std::cerr << "[İstemci " << clientID << "] Bağlantı hatası\n";
+        std::cerr << "[İstemci " << clientID << "] Bağlantı hatası!\n";
         close(sock);
         return;
     }
 
     std::string request = method + " " + path + " HTTP/1.1\r\n";
     request += "Host: " + std::string(SERVER_IP) + "\r\n";
-    request += "Connection: close\r\n";
+    request += "Connection: keep-alive\r\n";
 
     if (!body.empty()) {
         request += "Content-Length: " + std::to_string(body.size()) + "\r\n";
@@ -54,9 +66,16 @@ void sendRequest(int clientID, const std::string& method, const std::string& pat
 
 void runClient(int clientID) {
     std::cout << "[İstemci " << clientID << "] Sunucuya bağlanıyor...\n";
-    sendRequest(clientID, "GET", "/");
-    sendRequest(clientID, "POST", "/", "İstemci " + std::to_string(clientID) + " test verisi");
-    sendRequest(clientID, "DELETE", "/resource");
+    
+    for (int i = 0; i < REQUESTS_PER_CLIENT; i++) {
+        std::string method = methods[methodDist(gen)];
+        std::string path = paths[pathDist(gen)];
+        std::string body = (method == "POST") ? "İstemci " + std::to_string(clientID) + " veri gönderdi." : "";
+
+        sendRequest(clientID, method, path, body);
+        
+        std::this_thread::sleep_for(std::chrono::milliseconds(sleepTime(gen))); // Rastgele bekleme süresi
+    }
 }
 
 int main() {
