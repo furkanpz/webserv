@@ -81,8 +81,8 @@ void WebServer::ServerResponse(int eventFd)
         send(eventFd, response.c_str(), response.length(), 0);
         close(eventFd);
     }
-    std::cout << methods[MAX_INT + val.getRequestType()] 
-              << ": " << val.getFile() << "/ Response code: " << val.getResponseCode() << std::endl;
+     std::cout //<< methods[MAX_INT + val.getRequestType()] 
+               << "Response : " << val.getFile() << " Response code: " << val.getResponseCode() << std::endl;
 
 }
 
