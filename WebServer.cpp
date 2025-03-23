@@ -29,25 +29,19 @@ WebServer::WebServer(const std::string &host, int port) : Port(port), Host(host)
 
     setNonBlocking(serverFd);
 
-    pollFd = new pollfd[MAX_EVENTS];
-    pollFd[0].fd = serverFd;
-    pollFd[0].events = POLLIN;
+    pollfd serverPollFd = {serverFd, POLLIN, 0};
+    pollFds.push_back(serverPollFd);
 }
 
 
 WebServer::~WebServer()
 {
     close(serverFd);
-    delete[] pollFd;
 }
 
 void WebServer::setNonBlocking(int fd)
 {
-    int flags = fcntl(fd, F_GETFL, 0);
-    if (flags == -1)
-        throw ServerExcp("Fcntl Error");
-    int test = fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-    if (test == -1)
+    if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1)
         throw ServerExcp("Fcntl Error");
 }
 
@@ -75,44 +69,32 @@ void WebServer::start() {
     std::cout << "Server listening on " << Host << ":" << Port << "..." << std::endl;
 
     while (true) {
-        int events = poll(pollFd, MAX_EVENTS, -1);
+        int events = poll(pollFds.data(), pollFds.size(), -1);
         if (events < 0) {
             throw ServerExcp("Poll Error");
         }
         std::cout <<"event: " <<  events << std::endl;
 
-        for (int i = 0; i < MAX_EVENTS; i++) {
-            if (pollFd[i].revents & POLLIN) {
-                if (pollFd[i].fd == serverFd) {
+        for (int i = 0; i < pollFds.size(); i++) {
+            if (pollFds[i].revents & POLLIN) {
+                if (pollFds[i].fd == serverFd) {
                     int clientFd = accept(serverFd, (sockaddr *)&address, (socklen_t *)&addrLen);
-                    if (clientFd < 0) {
-                        std::cout << "Accept Error: " << strerror(errno) << std::endl;
-                        continue;
-                    }
+                    if (clientFd < 0) { continue; }
 
                     std::cout << "New client connected: " << clientFd << std::endl;
+                    
+                    pollfd clientPollFd = {clientFd, POLLIN, 0};
+                    pollFds.push_back(clientPollFd);
 
-                    std::cout << "i size:" << i << std::endl;
-                    bool added = false;
-                    for (int j = 1; j < MAX_EVENTS; j++) {
-                        if (pollFd[j].fd == 0) { 
-                            std::cout << "j size:" << j << std::endl;
-                            pollFd[j].fd = clientFd;
-                            pollFd[j].events = POLLIN;
-                            added = true;
-                            break;
-                        }
-                    }
-                    if (!added) {
-                        std::cout << "Max clients reached, unable to accept new connections!" << std::endl;
-                        close(clientFd);
-                    } else {
-                        setNonBlocking(clientFd); 
-                    }
-
-                } else {
-                    ServerResponse(pollFd[i].fd);
-                    pollFd[i].fd = 0;
+                    setNonBlocking(clientFd);
+                } 
+                else 
+                {
+                    std::cout << pollFds[i].fd << std::endl;
+                    ServerResponse(pollFds[i].fd);
+                    close(pollFds[i].fd);
+                    pollFds.erase(pollFds.begin() + i);
+                    i--; 
                 }
             }
         }

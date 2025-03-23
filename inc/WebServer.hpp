@@ -12,6 +12,7 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <poll.h>
+#include <vector>
 
 #define MAX_EVENTS 10 
 
@@ -19,7 +20,8 @@ class WebServer {
     private:
         std::string Host;
         int serverFd, addrLen, Port;
-        pollfd *pollFd;        
+        pollfd *pollFd;
+        std::vector<pollfd> pollFds;
         struct addrinfo first, *res;
 
     private:
