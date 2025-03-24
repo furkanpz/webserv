@@ -1,5 +1,6 @@
 #include "WebServer.hpp"
 #include "Utils.hpp"
+#include "sys/wait.h"
 
 static const std::string methods[3] = {"GET", "POST", "DELETE"};
 
@@ -39,11 +40,11 @@ void WebServer::CGIHandle(int clientFd, const std::string &scriptPath,
         if (method == "POST") {
             dup2(fd[1], STDIN_FILENO); 
             write(fd[1], body.c_str(), body.size()); 
-            setenv("CONTENT_LENGTH", std::to_string(body.length()).c_str(), 1);
+          //  setenv("CONTENT_LENGTH", std::to_string(body.length()).c_str(), 1);
         }
         dup2(fd[1], 1);
         close(fd[1]);
-        char *argv[] = { (char *)"python3", (char *)scriptPath.c_str(), nullptr };
+        char *argv[] = { (char *)"python3", (char *)scriptPath.c_str(), NULL };
         execve("/usr/bin/python3", argv, environ);
         exit(1);
     }
@@ -62,7 +63,7 @@ void WebServer::CGIHandle(int clientFd, const std::string &scriptPath,
 
         // HTTP yanıtını oluşturun ve istemciye gönderin.
         std::string header = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " +
-                             std::to_string(output.size()) + "\r\n\r\n";
+                             Utils::intToString(output.size()) + "\r\n\r\n";
         std::string response = header + output;
         send(clientFd, response.c_str(), response.length(), 0);
         close(clientFd);
@@ -103,6 +104,8 @@ void WebServer::ServerResponse(int eventFd)
         close(eventFd);
         return ;
     } else {
+        std::cout << std::endl;
+        std::cout << buffer << std::endl;
         Utils::parseContent(buffer, val);
         if (val.getisCGI() == true)
         {

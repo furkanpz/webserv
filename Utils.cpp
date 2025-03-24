@@ -40,6 +40,19 @@ std::string Utils::readFile(const std::string &fileName, Response &response, int
     return buffer.str();
 }
 
+std::string get_content_type(const std::string& http_buffer) {
+    std::istringstream stream(http_buffer);
+    std::string line;
+    
+    while (std::getline(stream, line)) {
+        size_t pos = line.find("Content-Type:");
+        if (pos != std::string::npos) {
+            return line.substr(pos + 14);
+        }
+    }
+    return "";
+}
+
 
 void Utils::parseContent(char *buffer, Response &response)
 {
@@ -47,6 +60,8 @@ void Utils::parseContent(char *buffer, Response &response)
     
     response.setFile(getFileName(request, response));
     response.setContent(readFile(response.getFile(), response));
+    response.setContentTypeForPost(get_content_type(request));
+    std::cout << "selam: " << response.getContentTypeForPost() << std::endl;
     if (request.find("GET ") == 0)
         response.setRequestType(GET);
     else if(request.find("POST ") == 0)

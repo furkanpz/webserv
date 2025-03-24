@@ -1,30 +1,31 @@
-#!/usr/bin/env python3
-import os
+#!/usr/bin/python3
+
 import cgi
-import cgitb
+import os
 
-cgitb.enable()
+# Dosya yükleme dizini
+UPLOAD_DIR = "~/upload_files"
 
-up_dir = "../upload"
-
-print("Content-Type: text/html\n")
+# Form verilerini al
 form = cgi.FieldStorage()
 
-if "file" not in form:
-    print("<h1>Error: No file provided</h1>")
-    exit(1)
+# Dosya varsa işle
+if "file" in form:
+    file_item = form["file"]
 
-file_item = form["file"]
+    if file_item.filename:
+        filepath = os.path.join(UPLOAD_DIR, file_item.filename)
 
+        # Dosyayı kaydet
+        with open(filepath, "wb") as f:
+            f.write(file_item.file.read())
+        
+        print("Content-type: text/html\n")
+        print("<html><body><h2>Dosya başarıyla yüklendi!</h2></body></html>")
+    else:
+        print("Content-type: text/html\n")
+        print("<html><body><h2>Dosya yüklenemedi.</h2></body></html>")
 
-if file_item.filename:
-    filename = os.path.basename(file_item.filename)
-    save_path = os.path.join(up_dir, filename)
-
-    with open(save_path, "wb") as f:
-        f.write(file_item.file.read())
-
-    print(f"<h1>Upload Successful</h1>")
-    print(f"<p>File <b>{filename}</b> has been uploaded successfully!</p>")
 else:
-    print("<h1>Error: No file uploaded</h1>")
+    print("Content-type: text/html\n")
+    print("<html><body><h2>Formda dosya bulunamadı.</h2></body></html>")

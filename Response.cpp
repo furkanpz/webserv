@@ -50,7 +50,19 @@ void Response::setisCGI(bool _tf)
     isCGI = _tf;
 }
 
+
+
 Response::Response() : requestType(-1), responseCode(-1), content(""), isCGI(false)
 {
     
+}
+
+std::string Response::getContentTypeForPost(void) const
+{
+    return contentTypeForPost;
+}
+
+void Response::setContentTypeForPost(std::string _contentTypeForPost)
+{
+    contentTypeForPost = _contentTypeForPost;
 }

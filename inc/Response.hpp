@@ -6,6 +6,7 @@ class Response{
     private:
         int requestType;
         int responseCode;
+        std::string contentTypeForPost;
         std::string content;
         std::string file;
         bool isCGI;
@@ -26,4 +27,7 @@ class Response{
 
     bool getisCGI(void) const;
     void setisCGI(bool _tf);
+
+    std::string getContentTypeForPost(void) const;
+    void setContentTypeForPost(std::string _contentTypeForPost);
 };
