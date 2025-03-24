@@ -26,7 +26,14 @@ std::string Utils::readFile(const std::string &fileName, Response &response, int
         response.setResponseCode(code);
         return "";
     }
-
+    else if (fileName.find("cgi-bin") == 0)
+    {
+        size_t temp = fileName.find("/");
+        response.setisCGI(true);
+        response.setResponseCode(code);
+        return "";
+    }
+    
     response.setResponseCode(code);
     std::stringstream buffer;
     buffer << file.rdbuf();
@@ -64,10 +71,10 @@ std::string Utils::getFileName(std::string request, Response &response)
 
     std::string path = request.substr(start, end - start);
     if (path == "/")
-        return "index.html";
-
+    return "index.html";
+    
     if (path[0] == '/')
-        path = path.substr(1);
+    path = path.substr(1);
     
     return path;
 }

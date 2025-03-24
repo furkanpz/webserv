@@ -8,6 +8,7 @@ class Response{
         int responseCode;
         std::string content;
         std::string file;
+        bool isCGI;
     public:
     Response();
 
@@ -22,4 +23,7 @@ class Response{
 
     std::string getFile(void) const;
     void setFile(std::string _file);
+
+    bool getisCGI(void) const;
+    void setisCGI(bool _tf);
 };

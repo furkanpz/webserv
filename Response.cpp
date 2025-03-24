@@ -40,7 +40,17 @@ void Response::setFile(std::string _file)
     file = _file;
 }
 
-Response::Response() : requestType(-1), responseCode(-1), content("")
+bool Response::getisCGI(void) const
+{
+    return isCGI;
+}
+
+void Response::setisCGI(bool _tf)
+{
+    isCGI = _tf;
+}
+
+Response::Response() : requestType(-1), responseCode(-1), content(""), isCGI(false)
 {
     
 }

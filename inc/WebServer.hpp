@@ -29,6 +29,11 @@ class WebServer {
         void setNonBlocking(int fd);
         int SocketCreator(const std::string &host);
         struct sockaddr_in address;
+        
+        void CGIHandle(int clientFd, const std::string &scriptPath,
+            const std::string &queryString,
+            const std::string &method,
+            const std::string &body);
 
     public:
         void start();
