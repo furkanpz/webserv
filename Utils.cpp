@@ -44,7 +44,7 @@ std::string Utils::readFile(const std::string &fileName, Response &response, int
 void Utils::parseContent(char *buffer, Response &response)
 {
     std::string request(buffer);
-     
+    
     response.setFile(getFileName(request, response));
     response.setContent(readFile(response.getFile(), response));
     if (request.find("GET ") == 0)

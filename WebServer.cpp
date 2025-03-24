@@ -37,6 +37,8 @@ void WebServer::CGIHandle(int clientFd, const std::string &scriptPath,
         setenv("REQUEST_METHOD", method.c_str(), 1);
         setenv("QUERY_STRING", queryString.c_str(), 1);
         if (method == "POST") {
+            dup2(fd[1], STDIN_FILENO); 
+            write(fd[1], body.c_str(), body.size()); 
             setenv("CONTENT_LENGTH", std::to_string(body.length()).c_str(), 1);
         }
         dup2(fd[1], 1);
@@ -104,7 +106,7 @@ void WebServer::ServerResponse(int eventFd)
         Utils::parseContent(buffer, val);
         if (val.getisCGI() == true)
         {
-            CGIHandle(eventFd, val.getFile(), "", "DENEMEE", "");
+            CGIHandle(eventFd, val.getFile(), "", "POST", "");
             return;
         }
         std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + 
