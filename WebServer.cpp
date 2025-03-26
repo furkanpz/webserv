@@ -21,7 +21,7 @@ int WebServer::SocketCreator(const std::string &host){
 }
 
 void WebServer::CGIHandle(int clientFd, const std::string &scriptPath,
-        const std::string &queryString, const std::string &method,
+        const std::string &queryString, const int &method,
         const std::string &body)
 {
     extern char **environ;
@@ -30,38 +30,35 @@ void WebServer::CGIHandle(int clientFd, const std::string &scriptPath,
     if (pipe(fd) == -1)
         return ;
     
+    write(1, body.c_str(), body.size());
+    write(1, "\n", 1);
+
     pid_t pid = fork();
     if (pid < 0) { close(fd[0]); close(fd[1]); }
     else if (pid == 0)
     {
+        if (method == POST)
+            dup2(fd[0], 0);
         close(fd[0]);
-        setenv("REQUEST_METHOD", method.c_str(), 1);
-        setenv("QUERY_STRING", queryString.c_str(), 1);
-        if (method == "POST") {
-            dup2(fd[1], STDIN_FILENO); 
-            write(fd[1], body.c_str(), body.size()); 
-          //  setenv("CONTENT_LENGTH", std::to_string(body.length()).c_str(), 1);
-        }
+        if (method == POST)
+            write(0, body.c_str(), body.size());
         dup2(fd[1], 1);
         close(fd[1]);
-        char *argv[] = { (char *)"python3", (char *)scriptPath.c_str(), NULL };
-        execve("/usr/bin/python3", argv, environ);
+        char *argv[] = { (char *)"python3.10", (char *)scriptPath.c_str(), NULL };
+        execve("/bin/python3.10", argv, environ);
+        std::cerr << "ERROR " << std::endl;
         exit(1);
     }
     else {
         close(fd[1]);
-        char buffer[1024];
+        char buffer[55555];
         std::string output;
+        waitpid(pid, NULL, 0);
         int bytesRead;
         while ((bytesRead = read(fd[0], buffer, sizeof(buffer))) > 0) {
             output.append(buffer, bytesRead);
         }
         close(fd[0]);
-
-        // Çocuk sürecin bitmesini bekleyin.
-        waitpid(pid, NULL, 0);
-
-        // HTTP yanıtını oluşturun ve istemciye gönderin.
         std::string header = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " +
                              Utils::intToString(output.size()) + "\r\n\r\n";
         std::string response = header + output;
@@ -73,6 +70,12 @@ void WebServer::CGIHandle(int clientFd, const std::string &scriptPath,
 WebServer::WebServer(const std::string &host, int port) : Port(port), Host(host) {
     serverFd = SocketCreator(host);
     if (serverFd == 0) {freeaddrinfo(res); close(serverFd); throw ServerExcp("Socket Error");}
+    int opt = 1;
+    if (setsockopt(serverFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+        close(serverFd);
+        freeaddrinfo(res);
+        throw ServerExcp("Setsockopt Error");
+    }
     if (bind(serverFd, res->ai_addr, res->ai_addrlen) < 0) {freeaddrinfo(res); close(serverFd); throw ServerExcp("Bind Error");}
     freeaddrinfo(res);
     if (listen(serverFd, SOMAXCONN) < 0) {close(serverFd); throw ServerExcp("Listen Error");}
@@ -86,6 +89,10 @@ WebServer::WebServer(const std::string &host, int port) : Port(port), Host(host)
 
 WebServer::~WebServer()
 {
+    for (int x = 0; x < pollFds.size(); x++)
+    {
+        close(pollFds[x].fd);
+    }
     close(serverFd);
 }
 
@@ -98,18 +105,18 @@ void WebServer::setNonBlocking(int fd)
 void WebServer::ServerResponse(int eventFd)
 {
     Response val;
-    char buffer[1024] = {0};
+    char buffer[5555] = {0};
     int bytesRead = read(eventFd, buffer, sizeof(buffer));
+    std::cout << buffer << std::endl;
     if (bytesRead <= 0) {
         close(eventFd);
         return ;
     } else {
         std::cout << std::endl;
-        std::cout << buffer << std::endl;
         Utils::parseContent(buffer, val);
         if (val.getisCGI() == true)
         {
-            CGIHandle(eventFd, val.getFile(), "", "POST", "");
+            CGIHandle(eventFd, val.getFile(), "", val.getRequestType(), val.getContentTypeForPost());
             return;
         }
         std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + 

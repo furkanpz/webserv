@@ -4,28 +4,25 @@ import cgi
 import os
 
 # Dosya yükleme dizini
-UPLOAD_DIR = "~/upload_files"
+UPLOAD_DIR = "../upload_files"
 
 # Form verilerini al
 form = cgi.FieldStorage()
 
-# Dosya varsa işle
-if "file" in form:
-    file_item = form["file"]
+# Form verilerinin çıktısını yazdır (debug amaçlı)
+print("Content-Type: text/html")
+print()  # HTTP başlıkları arasındaki boş satır
 
-    if file_item.filename:
-        filepath = os.path.join(UPLOAD_DIR, file_item.filename)
+print("<html><body>")
+print("<h2>Form Verisi:</h2>")
 
-        # Dosyayı kaydet
-        with open(filepath, "wb") as f:
-            f.write(file_item.file.read())
-        
-        print("Content-type: text/html\n")
-        print("<html><body><h2>Dosya başarıyla yüklendi!</h2></body></html>")
+# Form verilerini ekrana yazdır
+for field in form.keys():
+    field_item = form[field]
+    if field_item.filename:  # Dosya yüklenmişse
+        print(f"File field: {field_item.filename} <br>")
+        # Dosya yükleme işlemi yapılabilir
     else:
-        print("Content-type: text/html\n")
-        print("<html><body><h2>Dosya yüklenemedi.</h2></body></html>")
+        print(f"Field name: {field}, Value: {field_item.value} <br>")
 
-else:
-    print("Content-type: text/html\n")
-    print("<html><body><h2>Formda dosya bulunamadı.</h2></body></html>")
+print("</body></html>")

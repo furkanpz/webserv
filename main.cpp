@@ -1,14 +1,25 @@
 #include "webserv.hpp"
 #include "WebServer.hpp"
 
+WebServer *g_server = NULL;
+
+void ServerKill(int sig) {
+    delete g_server;
+    std::cout << "\nServer Killed!" << std::endl;
+    exit(1);
+}
+
 int main(int ac, char **av)
 {
     if (ac == 1)
     {
         (void)av; // wall werror wextra sussun diye koydum şimdilik
         try {
-            WebServer serv("127.0.0.1", 4234);
-            serv.start();
+            WebServer *serv  = new WebServer("127.0.0.1", 5533);
+            g_server = serv;
+            signal(SIGINT, ServerKill);
+            serv->start();
+
         }
         catch (std::exception &e)
         {

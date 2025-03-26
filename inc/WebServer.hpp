@@ -12,6 +12,7 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <poll.h>
+#include <signal.h>
 #include <vector>
 
 #define MAX_EVENTS 10 
@@ -32,7 +33,7 @@ class WebServer {
         
         void CGIHandle(int clientFd, const std::string &scriptPath,
             const std::string &queryString,
-            const std::string &method,
+            const int &method,
             const std::string &body);
 
     public:
