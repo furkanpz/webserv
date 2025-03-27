@@ -85,6 +85,7 @@ void Utils::parseContent(std::string &buffer, Response &response, int eventFd)
     
     response.setFile(getFileName(request, response));
     response.setContent(readFile(response.getFile(), response));
+    response.setcontentType(get_content_type(request));
     if (request.find("GET ") == 0)
         response.setRequestType(GET);
     else if(request.find("POST ") == 0)

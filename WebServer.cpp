@@ -24,24 +24,34 @@ int WebServer::SocketCreator(const std::string &host){
 void WebServer::CGIHandle(int clientFd, Response &res)
 {
     extern char **environ;
-    int fd[2];
+    int fd_out[2]; 
+    int fd_in[2];  
 
-    if (pipe(fd) == -1)
-        return ;
+    if (pipe(fd_out) == -1 || pipe(fd_in) == -1)
+        return;
+
     pid_t pid = fork();
-    if (pid < 0) { close(fd[0]); close(fd[1]); }
-    else if (pid == 0)
+    if (pid < 0) { 
+        close(fd_out[0]); close(fd_out[1]);
+        close(fd_in[0]); close(fd_in[1]);
+        return;
+    }
+    else if (pid == 0) 
     {
-        if (res.getRequestType() == POST)
-            dup2(fd[0], 0);
-        close(fd[0]);
-        if (res.getRequestType() == POST)
-        {
-            setenv("CONTENT_LENGTH", Utils::intToString(res.getContentLength()).c_str(), 0);
-            write(0, res.getContentTypeForPost().c_str(), res.getContentTypeForPost().size());
+        if (res.getRequestType() == POST) {
+            setenv("CONTENT_TYPE", res.getcontentType().c_str(), 1);
+            setenv("CONTENT_LENGTH", Utils::intToString(res.getContentLength()).c_str(), 1);
         }
-        dup2(fd[1], 1);
-        close(fd[1]);
+        setenv("REQUEST_METHOD", (res.getRequestType() == POST ? "POST" : "GET"), 1);
+        close(fd_out[0]);  
+        dup2(fd_out[1], 1); 
+        close(fd_out[1]);
+
+
+        close(fd_in[1]); 
+        dup2(fd_in[0], 0); 
+        close(fd_in[0]);
+
         std::string scriptFile = res.getFile();
         char *argv[] = { (char *)"python3.10", (char *)scriptFile.c_str(), NULL };
         execve("/bin/python3.10", argv, environ);
@@ -49,15 +59,18 @@ void WebServer::CGIHandle(int clientFd, Response &res)
         exit(1);
     }
     else {
-        close(fd[1]);
+        close(fd_out[1]); 
+        close(fd_in[0]);
+        if (res.getRequestType() == POST) 
+            write(fd_in[1], res.getContentTypeForPost().c_str(), res.getContentTypeForPost().size());
+        close(fd_in[1]); 
         char buffer[55555];
         std::string output;
-        waitpid(pid, NULL, 0);
         int bytesRead;
-        while ((bytesRead = read(fd[0], buffer, sizeof(buffer))) > 0) {
+        while ((bytesRead = read(fd_out[0], buffer, sizeof(buffer))) > 0)
             output.append(buffer, bytesRead);
-        }
-        close(fd[0]);
+        close(fd_out[0]);
+        waitpid(pid, NULL, 0);
         std::string header = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " +
                              Utils::intToString(output.size()) + "\r\n\r\n";
         std::string response = header + output;
