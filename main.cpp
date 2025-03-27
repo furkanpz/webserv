@@ -19,7 +19,6 @@ int main(int ac, char **av)
             g_server = serv;
             signal(SIGINT, ServerKill);
             serv->start();
-
         }
         catch (std::exception &e)
         {

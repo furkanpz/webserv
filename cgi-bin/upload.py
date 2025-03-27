@@ -16,13 +16,6 @@ print()  # HTTP başlıkları arasındaki boş satır
 print("<html><body>")
 print("<h2>Form Verisi:</h2>")
 
-# Form verilerini ekrana yazdır
-for field in form.keys():
-    field_item = form[field]
-    if field_item.filename:  # Dosya yüklenmişse
-        print(f"File field: {field_item.filename} <br>")
-        # Dosya yükleme işlemi yapılabilir
-    else:
-        print(f"Field name: {field}, Value: {field_item.value} <br>")
+print(form)
 
 print("</body></html>")

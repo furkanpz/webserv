@@ -53,21 +53,45 @@ std::string get_content_type(const std::string& http_buffer) {
     return "";
 }
 
+size_t Utils::getContentLenght(std::string request, Response &response, int eventFd)
+{
+    size_t contentLength = 0;
+    char buffer[10240] = {0};
+    long bytesRead;
 
-void Utils::parseContent(char *buffer, Response &response)
+    if (response.getRequestType() == POST)
+    {
+        size_t pos = request.find("Content-Length:");
+        if (pos != std::string::npos) {
+            std::istringstream iss(request.substr(pos));
+            std::string temp;
+            iss >> temp >> contentLength;
+        }
+        std::string body;
+        while (body.length() < (size_t)contentLength) {
+            bytesRead = recv(eventFd, buffer, sizeof(buffer), 0);
+            if (bytesRead <= 0) break;
+            body.append(buffer, bytesRead);
+        }
+        response.setContentTypeForPost(body);
+    }
+    return (contentLength);
+}
+
+
+void Utils::parseContent(std::string &buffer, Response &response, int eventFd)
 {
     std::string request(buffer);
     
     response.setFile(getFileName(request, response));
     response.setContent(readFile(response.getFile(), response));
-    response.setContentTypeForPost(get_content_type(request));
-    std::cout << "selam: " << response.getContentTypeForPost() << std::endl;
     if (request.find("GET ") == 0)
         response.setRequestType(GET);
     else if(request.find("POST ") == 0)
         response.setRequestType(POST);
     else if (request.find("DELETE ") == 0)
         response.setRequestType(DELETE);
+    response.setContentLength(getContentLenght(request, response, eventFd));
 }
 
 

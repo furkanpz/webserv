@@ -10,6 +10,16 @@ void Response::setRequestType(int _requestType)
     requestType = _requestType;
 }
 
+void Response::setContentLength(int _Lenght)
+{
+    ContentLenght = _Lenght;
+}
+
+int Response::getContentLength(void) const
+{
+    return ContentLenght;
+}
+
 int Response::getResponseCode(void) const
 {
     return responseCode;

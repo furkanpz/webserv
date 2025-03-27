@@ -9,12 +9,16 @@ class Response{
         std::string contentTypeForPost;
         std::string content;
         std::string file;
+        int ContentLenght;
         bool isCGI;
     public:
     Response();
 
     int getRequestType(void) const;
     void setRequestType(int _requestType);
+
+    int getContentLength(void) const;
+    void setContentLength(int _Lenght);
 
     int getResponseCode(void) const;
     void setResponseCode(int _responseCode);

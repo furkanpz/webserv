@@ -1,5 +1,6 @@
 #include "WebServer.hpp"
 #include "Utils.hpp"
+#include "Response.hpp"
 #include "sys/wait.h"
 
 static const std::string methods[3] = {"GET", "POST", "DELETE"};
@@ -20,31 +21,29 @@ int WebServer::SocketCreator(const std::string &host){
     return (socket(res->ai_family, res->ai_socktype, res->ai_protocol));
 }
 
-void WebServer::CGIHandle(int clientFd, const std::string &scriptPath,
-        const std::string &queryString, const int &method,
-        const std::string &body)
+void WebServer::CGIHandle(int clientFd, Response &res)
 {
     extern char **environ;
     int fd[2];
 
     if (pipe(fd) == -1)
         return ;
-    
-    write(1, body.c_str(), body.size());
-    write(1, "\n", 1);
-
     pid_t pid = fork();
     if (pid < 0) { close(fd[0]); close(fd[1]); }
     else if (pid == 0)
     {
-        if (method == POST)
+        if (res.getRequestType() == POST)
             dup2(fd[0], 0);
         close(fd[0]);
-        if (method == POST)
-            write(0, body.c_str(), body.size());
+        if (res.getRequestType() == POST)
+        {
+            setenv("CONTENT_LENGTH", Utils::intToString(res.getContentLength()).c_str(), 0);
+            write(0, res.getContentTypeForPost().c_str(), res.getContentTypeForPost().size());
+        }
         dup2(fd[1], 1);
         close(fd[1]);
-        char *argv[] = { (char *)"python3.10", (char *)scriptPath.c_str(), NULL };
+        std::string scriptFile = res.getFile();
+        char *argv[] = { (char *)"python3.10", (char *)scriptFile.c_str(), NULL };
         execve("/bin/python3.10", argv, environ);
         std::cerr << "ERROR " << std::endl;
         exit(1);
@@ -105,26 +104,30 @@ void WebServer::setNonBlocking(int fd)
 void WebServer::ServerResponse(int eventFd)
 {
     Response val;
-    char buffer[5555] = {0};
-    int bytesRead = read(eventFd, buffer, sizeof(buffer));
-    std::cout << buffer << std::endl;
-    if (bytesRead <= 0) {
-        close(eventFd);
-        return ;
-    } else {
-        std::cout << std::endl;
-        Utils::parseContent(buffer, val);
-        if (val.getisCGI() == true)
-        {
-            CGIHandle(eventFd, val.getFile(), "", val.getRequestType(), val.getContentTypeForPost());
-            return;
-        }
-        std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + 
-                            Utils::intToString(val.getContent().length()) + "\r\n\r\n" + val.getContent();
-        send(eventFd, response.c_str(), response.length(), 0);
-        close(eventFd);
+    char buffer[1024];
+    std::stringstream bodyStream;
+    int bytesRead;
+    
+    std::string headers;
+    int contentLength = 0;
+    while ((bytesRead = recv(eventFd, buffer, sizeof(buffer) - 1, 0)) > 0) {
+        buffer[bytesRead] = '\0';
+        headers += buffer;
+        if (headers.find("\r\n\r\n") != std::string::npos)
+            break;
     }
-     std::cout //<< methods[MAX_INT + val.getRequestType()] 
+
+    Utils::parseContent(headers, val, eventFd);
+    if (val.getisCGI() == true)
+    {
+        CGIHandle(eventFd, val);
+        return;
+    }
+    std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + 
+                        Utils::intToString(val.getContent().length()) + "\r\n\r\n" + val.getContent();
+    send(eventFd, response.c_str(), response.length(), 0);
+    close(eventFd);
+    std::cout //<< methods[MAX_INT + val.getRequestType()] 
                << "Response : " << val.getFile() << " Response code: " << val.getResponseCode() << std::endl;
 
 }
@@ -154,7 +157,6 @@ void WebServer::start() {
                 } 
                 else 
                 {
-                    std::cout << pollFds[i].fd << std::endl;
                     ServerResponse(pollFds[i].fd);
                     close(pollFds[i].fd);
                     pollFds.erase(pollFds.begin() + i);
