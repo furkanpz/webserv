@@ -53,7 +53,7 @@ std::string get_content_type(const std::string& http_buffer) {
     return "";
 }
 
-size_t Utils::getContentLenght(std::string request, Response &response, int eventFd)
+size_t Utils::getContentLenght(std::string request, Response &response)
 {
     size_t contentLength = 0;
     char buffer[10240] = {0};
@@ -67,17 +67,63 @@ size_t Utils::getContentLenght(std::string request, Response &response, int even
             std::string temp;
             iss >> temp >> contentLength;
         }
-        std::string body;
-        while (body.length() < (size_t)contentLength) {
-            bytesRead = recv(eventFd, buffer, sizeof(buffer), 0);
-            if (bytesRead <= 0) break;
-            body.append(buffer, bytesRead);
-        }
-        response.setContentTypeForPost(body);
+        std::cout << contentLength << std::endl;
     }
     return (contentLength);
 }
 
+void Utils::getFormData(std::string request, Response &response, int eventFd)
+{
+    std::string body;
+    int contentLength = response.getContentLength();
+    int bytesRead;
+    char buffer[10240];
+    while (body.length() < (size_t)contentLength) {
+        bytesRead = recv(eventFd, buffer, sizeof(buffer) - 1, 0);
+        buffer[bytesRead] = '\0';
+        if (bytesRead <= 0) break;
+        body.append(buffer, bytesRead);
+        response.setContentTypeForPost(body);
+    }
+}
+
+
+int countOccurrences(const std::string &buffer, const std::string &target) {
+    int count = 0;
+    size_t pos = buffer.find(target);
+
+    while (pos != std::string::npos) { // target bulunduğu sürece devam et
+        count++;
+        pos = buffer.find(target, pos + target.length()); // Sonraki konumu ara
+    }
+    return count;
+}
+
+void Utils::doubleSeperator(std::string key, std::string &buffer,
+    Response &response, int eventFd)
+{
+    std::string target = "=";
+    size_t firstPos = key.find(target);
+    if (firstPos == std::string::npos)
+        return ;
+    
+    std::string seperator = key.substr(firstPos + 1);
+    if (countOccurrences(buffer, seperator) > 1)
+    {
+        size_t firstOcc = buffer.find(seperator);
+        if (firstOcc == std::string::npos)
+            return;
+
+        size_t secondOcc = buffer.find(seperator, firstOcc + 1);
+        if (secondOcc != std::string::npos)
+            response.setContentTypeForPost(buffer.substr(secondOcc));
+    }
+    else
+        getFormData(buffer, response, eventFd);
+    if (response.getContentTypeForPost().empty())
+        std::cout << buffer << std::endl;
+    std::cout << response.getContentTypeForPost() << std::endl;
+}
 
 void Utils::parseContent(std::string &buffer, Response &response, int eventFd)
 {
@@ -87,12 +133,16 @@ void Utils::parseContent(std::string &buffer, Response &response, int eventFd)
     response.setContent(readFile(response.getFile(), response));
     response.setcontentType(get_content_type(request));
     if (request.find("GET ") == 0)
-        response.setRequestType(GET);
+    response.setRequestType(GET);
     else if(request.find("POST ") == 0)
+    {
         response.setRequestType(POST);
+        response.setContentLength(getContentLenght(request, response));
+        Utils::doubleSeperator(response.getcontentType() , buffer, response, eventFd);
+        
+    }
     else if (request.find("DELETE ") == 0)
         response.setRequestType(DELETE);
-    response.setContentLength(getContentLenght(request, response, eventFd));
 }
 
 

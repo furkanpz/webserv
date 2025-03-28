@@ -26,7 +26,6 @@ void WebServer::CGIHandle(int clientFd, Response &res)
     extern char **environ;
     int fd_out[2]; 
     int fd_in[2];  
-
     if (pipe(fd_out) == -1 || pipe(fd_in) == -1)
         return;
 
@@ -53,8 +52,13 @@ void WebServer::CGIHandle(int clientFd, Response &res)
         close(fd_in[0]);
 
         std::string scriptFile = res.getFile();
-        char *argv[] = { (char *)"python3.10", (char *)scriptFile.c_str(), NULL };
-        execve("/bin/python3.10", argv, environ);
+        #ifdef __APPLE__
+            char *argv[] = { (char *)"python3", (char *)scriptFile.c_str(), NULL };
+            execve("/usr/bin/python3", argv, environ);
+        #else
+            char *argv[] = { (char *)"python3.10", (char *)scriptFile.c_str(), NULL };
+            execve("/bin/python3.10", argv, environ);
+        #endif
         std::cerr << "ERROR " << std::endl;
         exit(1);
     }
@@ -117,7 +121,7 @@ void WebServer::setNonBlocking(int fd)
 void WebServer::ServerResponse(int eventFd)
 {
     Response val;
-    char buffer[1024];
+    char buffer[10240];
     std::stringstream bodyStream;
     int bytesRead;
     
@@ -129,7 +133,8 @@ void WebServer::ServerResponse(int eventFd)
         if (headers.find("\r\n\r\n") != std::string::npos)
             break;
     }
-
+    if (val.getRequestType() == POST)
+        std::cout << headers << std::endl;
     Utils::parseContent(headers, val, eventFd);
     if (val.getisCGI() == true)
     {
@@ -139,7 +144,6 @@ void WebServer::ServerResponse(int eventFd)
     std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + 
                         Utils::intToString(val.getContent().length()) + "\r\n\r\n" + val.getContent();
     send(eventFd, response.c_str(), response.length(), 0);
-    close(eventFd);
     std::cout //<< methods[MAX_INT + val.getRequestType()] 
                << "Response : " << val.getFile() << " Response code: " << val.getResponseCode() << std::endl;
 
