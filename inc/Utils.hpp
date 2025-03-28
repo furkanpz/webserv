@@ -11,5 +11,5 @@ class Utils
         static std::string getFileName(std::string request, Response &response);
         static size_t getContentLenght(std::string request, Response &response);
         static void doubleSeperator(std::string key, std::string &buffer, Response &response, int eventFd);
-        static void getFormData(std::string request, Response &response, int eventFd);
+        static void getFormData(std::string request, std::string body, Response &response, int eventFd);
 };
