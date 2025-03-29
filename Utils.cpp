@@ -123,6 +123,7 @@ void Utils::doubleSeperator(std::string key, std::string &buffer,
         }
         else
             getFormData(buffer, "", response, eventFd);
+    }
 }
 
 void Utils::parseContent(std::string &buffer, Response &response, int eventFd)
