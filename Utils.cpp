@@ -80,6 +80,7 @@ void Utils::getFormData(std::string request, std::string body, Response &respons
     while (body.length() < (size_t)contentLength) {
         bytesRead = recv(eventFd, buffer, sizeof(buffer) - 1, 0);
         buffer[bytesRead] = '\0';
+        std::cout << buffer << std::endl;
         if (bytesRead <= 0) break;
         body.append(buffer, bytesRead);
         response.setContentTypeForPost(body);
@@ -105,10 +106,10 @@ void Utils::doubleSeperator(std::string key, std::string &buffer,
     size_t firstPos = key.find(target);
     if (firstPos == std::string::npos)
         return ;
-    
     std::string seperator = key.substr(firstPos + 1);
     if (countOccurrences(buffer, seperator) > 1)
     {
+        std::cout << "a" << std::endl;
         size_t firstOcc = buffer.find(seperator);
         if (firstOcc == std::string::npos)
             return;
@@ -117,13 +118,13 @@ void Utils::doubleSeperator(std::string key, std::string &buffer,
         {
             std::string temp = buffer.substr(secondOcc - 2);
             if (buffer.substr(secondOcc - 2).length() != response.getContentLength())
-                getFormData(buffer, temp, response, eventFd);
+               getFormData(buffer, temp, response, eventFd);
             else
                 response.setContentTypeForPost(temp);
         }
-        else
-            getFormData(buffer, "", response, eventFd);
     }
+    else
+        getFormData(buffer, "", response, eventFd);
 }
 
 void Utils::parseContent(std::string &buffer, Response &response, int eventFd)
@@ -133,6 +134,7 @@ void Utils::parseContent(std::string &buffer, Response &response, int eventFd)
     response.setFile(getFileName(request, response));
     response.setContent(readFile(response.getFile(), response));
     response.setcontentType(get_content_type(request));
+    // std::cout << request << std::endl;
     if (request.find("GET ") == 0)
     response.setRequestType(GET);
     else if(request.find("POST ") == 0)
