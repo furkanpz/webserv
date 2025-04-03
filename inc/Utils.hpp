@@ -14,4 +14,6 @@ class Utils
         static void getFormData(std::string request, std::string body, Response &response, int eventFd);
         static bool waitPoll(int eventFd);
         static int countSeperator(const std::string &buffer, const std::string &target);
+        static void directlyFormData(std::string body, Response &response, int eventFd);
+
 };

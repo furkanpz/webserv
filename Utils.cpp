@@ -59,15 +59,11 @@ size_t Utils::getContentLenght(std::string request, Response &response)
     char    buffer[10240] = {0};
     long    bytesRead;
 
-    if (response.getRequestType() == POST)
-    {
-        size_t pos = request.find("Content-Length:");
-        if (pos != std::string::npos) {
-            std::istringstream iss(request.substr(pos));
-            std::string temp;
-            iss >> temp >> contentLength;
-        }
-        std::cout << contentLength << std::endl;
+    size_t pos = request.find("Content-Length:");
+    if (pos != std::string::npos) {
+        std::istringstream iss(request.substr(pos));
+        std::string temp;
+        iss >> temp >> contentLength;
     }
     return (contentLength);
 }
@@ -92,6 +88,15 @@ bool Utils::waitPoll(int eventFd)
     return false;
 }
 
+void Utils::directlyFormData(std::string body, Response &response, int eventFd)
+{
+    char buffer[10240];
+    int bytesRead = recv(eventFd, buffer, sizeof(buffer), 0);
+    if (bytesRead > 0) {
+        body.append(buffer, bytesRead);
+    }
+    response.setContentTypeForPost(body);
+}
 
 void Utils::getFormData(std::string request, std::string body, Response &response, int eventFd)
 {
@@ -100,17 +105,17 @@ void Utils::getFormData(std::string request, std::string body, Response &respons
     char buffer[10240] = {0};
     while (body.length() < (size_t)contentLength) {
         bytesRead = recv(eventFd, buffer, sizeof(buffer) - 1, 0);
-        buffer[bytesRead] = '\0';
         std::cout << buffer << std::endl;
-        if (bytesRead <= 0)
+        if (bytesRead > 0)
+            body.append(buffer, bytesRead);
+        else
         {
             if (waitPoll(eventFd))
                 continue;
             break;
         }
-        body.append(buffer, bytesRead);
-        response.setContentTypeForPost(body);
     }
+    response.setContentTypeForPost(body);
 }
 
 
@@ -165,7 +170,11 @@ void Utils::parseContent(std::string &buffer, Response &response, int eventFd)
     else if(request.find("POST ") == 0)
     {
         response.setRequestType(POST);
-        Utils::doubleSeperator(response.getcontentType() , buffer, response, eventFd);
+        std::cout << response.getContentTypeForPost().length() << std::endl;
+        std::cout << response.getContentLength() << std::endl;
+
+        if (response.getContentTypeForPost().length() != response.getContentLength())
+            Utils::doubleSeperator(response.getcontentType() , buffer, response, eventFd);
     }
     else if (request.find("DELETE ") == 0)
         response.setRequestType(DELETE);

@@ -124,7 +124,8 @@ bool WebServer::CheckResponse(int eventFd, std::string &headers, Response &res)
         std::string continueResponse = "HTTP/1.1 100 Continue\r\n\r\n";
         send(eventFd, continueResponse.c_str(), continueResponse.size(), 0);
         if (Utils::waitPoll(eventFd))
-            Utils::parseContent(headers, res, eventFd);
+                Utils::directlyFormData("", res, eventFd);
+        Utils::parseContent(headers, res, eventFd);
     }
     else
         Utils::parseContent(headers, res, eventFd);
@@ -146,6 +147,7 @@ void WebServer::ServerResponse(int eventFd)
         if (headers.find("\r\n\r\n") != std::string::npos)
             break;
     }
+    std::cout << headers << std::endl;
     if (CheckResponse(eventFd, headers, res))
         return;
     std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + 
