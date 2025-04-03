@@ -79,7 +79,7 @@ void WebServer::CGIHandle(int clientFd, Response &res)
                              Utils::intToString(output.size()) + "\r\n\r\n";
         std::string response = header + output;
         send(clientFd, response.c_str(), response.length(), 0);
-        close(clientFd);
+        // close(clientFd);
     }
 }
 
@@ -118,34 +118,41 @@ void WebServer::setNonBlocking(int fd)
         throw ServerExcp("Fcntl Error");
 }
 
+bool WebServer::CheckResponse(int eventFd, std::string &headers, Response &res)
+{
+    if (headers.find("Expect: 100-continue") != std::string::npos) {
+        std::string continueResponse = "HTTP/1.1 100 Continue\r\n\r\n";
+        send(eventFd, continueResponse.c_str(), continueResponse.size(), 0);
+        if (Utils::waitPoll(eventFd))
+            Utils::parseContent(headers, res, eventFd);
+    }
+    else
+        Utils::parseContent(headers, res, eventFd);
+    if (res.getisCGI())
+        return CGIHandle(eventFd, res), true;
+    return false;
+}
+
 void WebServer::ServerResponse(int eventFd)
 {
-    Response val;
-    char buffer[10240];
-    std::stringstream bodyStream;
-    int bytesRead;
-    
+    Response    res;
     std::string headers;
-    int contentLength = 0;
+    char        buffer[10240] = {0};
+    int         bytesRead;
+    int         contentLength = 0;
+
     while ((bytesRead = recv(eventFd, buffer, sizeof(buffer) - 1, 0)) > 0) {
-        buffer[bytesRead] = '\0';
-        headers += buffer;
+        headers.append(buffer, bytesRead);
         if (headers.find("\r\n\r\n") != std::string::npos)
             break;
     }
-    if (val.getRequestType() == POST)
-        std::cout << headers << std::endl;
-    Utils::parseContent(headers, val, eventFd);
-    if (val.getisCGI() == true)
-    {
-        CGIHandle(eventFd, val);
+    if (CheckResponse(eventFd, headers, res))
         return;
-    }
     std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + 
-                        Utils::intToString(val.getContent().length()) + "\r\n\r\n" + val.getContent();
+                        Utils::intToString(res.getContent().length()) + "\r\n\r\n" + res.getContent();
     send(eventFd, response.c_str(), response.length(), 0);
-    std::cout //<< methods[MAX_INT + val.getRequestType()] 
-               << "Response : " << val.getFile() << " Response code: " << val.getResponseCode() << std::endl;
+    std::cout //<< methods[MAX_INT + res.getRequestType()] 
+               << "Response : " << res.getFile() << " Response code: " << res.getResponseCode() << std::endl;
 
 }
 
@@ -169,7 +176,6 @@ void WebServer::start() {
                     
                     pollfd clientPollFd = {clientFd, POLLIN, 0};
                     pollFds.push_back(clientPollFd);
-
                     setNonBlocking(clientFd);
                 } 
                 else 

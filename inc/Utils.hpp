@@ -1,7 +1,7 @@
 #pragma once
 #include "webserv.hpp"
 #include "Response.hpp"
-
+#include "WebServer.hpp"
 class Utils
 {
     public:
@@ -12,4 +12,6 @@ class Utils
         static size_t getContentLenght(std::string request, Response &response);
         static void doubleSeperator(std::string key, std::string &buffer, Response &response, int eventFd);
         static void getFormData(std::string request, std::string body, Response &response, int eventFd);
+        static bool waitPoll(int eventFd);
+        static int countSeperator(const std::string &buffer, const std::string &target);
 };

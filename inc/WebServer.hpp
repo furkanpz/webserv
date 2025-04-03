@@ -32,6 +32,7 @@ class WebServer {
         void setNonBlocking(int fd);
         int SocketCreator(const std::string &host);
         struct sockaddr_in address;
+        bool CheckResponse(int eventFd, std::string &headers, Response &res);
         
         void CGIHandle(int clientFd, Response &res);
 
