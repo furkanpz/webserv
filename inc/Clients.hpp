@@ -1,13 +1,7 @@
 #pragma once
 
-
-#include <poll.h>
-#include <iostream>
 #include "webserv.hpp"
-
-#define NONE 0
-#define REQUEST 1
-#define WAIT_FORM 2
+#include "Response.hpp"
 
 class Clients {
     private:

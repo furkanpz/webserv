@@ -71,7 +71,7 @@ void Response::setcontentType(std::string _type)
 }
 
 
-Response::Response() : contentTypeForPost(""), file(""), requestType(-1), 
+Response::Response() : contentTypeForPost(""), file(""), requestType(NONE), 
     responseCode(-1), content(""), isCGI(false), ContentLenght(0),
     contentType("")
 {

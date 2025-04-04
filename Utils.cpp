@@ -141,7 +141,7 @@ void Utils::doubleSeperator(std::string key, std::string &buffer,
         if (firstIndex != std::string::npos)
         {
             std::string temp = buffer.substr(firstIndex - 2);
-            if (buffer.substr(firstIndex - 2).length() == response.getContentLength())
+            if (temp.length() == response.getContentLength())
                 response.setContentTypeForPost(temp);
             else
                 client.formData.append(temp);
@@ -151,26 +151,27 @@ void Utils::doubleSeperator(std::string key, std::string &buffer,
         client.events = WAIT_FORM;
 }
 
-void Utils::parseContent(std::string &buffer, Response &response, Clients &client)
+void Utils::parseContent(std::string &buffer, Clients &client)
 {
     std::string request(buffer);
+    Response &response = client.response;
     
-    if (client.events == REQUEST)
+    if (client.events == REQUEST && client.response.getRequestType() == NONE)
     {
         response.setFile(getFileName(request, response));
         response.setContent(readFile(response.getFile(), response));
         response.setcontentType(get_content_type(request));
         response.setContentLength(getContentLenght(request, response));
-        if (request.find("GET ") == 0)
-        response.setRequestType(GET);
+        if (request.find("DELETE ") == 0)
+        response.setRequestType(DELETE);
         else if(request.find("POST ") == 0)
         {
             response.setRequestType(POST);
-            if (response.getContentTypeForPost().length() != response.getContentLength())
+            if (response.getContentLength() > 0)
                 Utils::doubleSeperator(response.getcontentType() , buffer, response, client);
         }
-        else if (request.find("DELETE ") == 0)
-            response.setRequestType(DELETE);
+        else 
+            response.setRequestType(GET);
     }
 }
 
@@ -196,4 +197,11 @@ std::string Utils::getFileName(std::string request, Response &response)
     path = path.substr(1);
     
     return path;
+}
+
+void Utils::print_response(Response &response)
+{
+    std::string meth("[" + methods[MAX_INT - response.getRequestType()] + "]");
+    std::cout << meth << std::setw(3)
+               << " /" << response.getFile() << " " << response.getResponseCode() << std::endl;
 }

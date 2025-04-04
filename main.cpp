@@ -18,6 +18,7 @@ int main(int ac, char **av)
             WebServer *serv  = new WebServer("127.0.0.1", 5555);
             g_server = serv;
             signal(SIGINT, ServerKill);
+            signal(SIGPIPE, SIG_IGN);
             serv->start();
         }
         catch (std::exception &e)

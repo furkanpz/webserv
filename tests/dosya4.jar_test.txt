@@ -1,18 +1,4 @@
-#!/usr/bin/python3
 
-import cgi
-import sys
-import os
-
-UPLOAD_DIR = "./uploads"
-
-if not os.path.exists(UPLOAD_DIR):
-    os.makedirs(UPLOAD_DIR)
-
-form = cgi.FieldStorage()
-
-
-response = """
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -80,50 +66,15 @@ response = """
 <body>
     <div class="container">
         <h2>Dosya Yükle</h2>
-"""
 
 
-if "file" in form.keys():
-    file_item = form["file"]
-    
-    if file_item.filename:
-        file_path = os.path.join(UPLOAD_DIR, file_item.filename)
-        
-        with open(file_path, "wb") as f:
-            f.write(file_item.file.read())
-        
-        response += f"""
         <div class="message success">
-            <p><strong>Success!</strong> File <em>{file_item.filename}</em> Dosya Başarıyla Yüklendi!</p>
+            <p><strong>Success!</strong> File <em>dosya4.jar</em> Dosya Başarıyla Yüklendi!</p>
         </div>
-        """
-    else:
-        response += """
-        <div class="message error">
-            <p><strong>Error!</strong> Dosya Yüklenmedi!.</p>
-        </div>
-        """
-else:
-    response += """
-    <div class="message error">
-        <p><strong>Error!</strong> Dosya Yok!</p>
-    </div>
-    """
+        
 
-response += """
     <a href="/" class="button">Anasayfa</a>
     </div>
 </body>
 </html>
-"""
 
-if "file" in form.keys():
-    file_item = form["file"]
-    
-    if file_item.filename:
-        header = "HTTP/1.1 200 OK\r\n"
-    else:
-        header = "HTTP/1.1 400 Bad Request\r\n"
-        
-header += "Content-Type: text/html\r\nContent-Length: " + str(len(response)) + "\r\n\r\n"
-print(header + response)

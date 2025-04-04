@@ -1,21 +1,7 @@
 #pragma once
 
-#include "WebServer.hpp"
-#include <iostream>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <unistd.h>
-#include <cstring>
-#include <arpa/inet.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <signal.h>
-#include <vector>
+#include "webserv.hpp"
 #include "Clients.hpp"
-#define MAX_EVENTS 10 
 
 class Response;
 
@@ -33,10 +19,13 @@ class WebServer {
         void setNonBlocking(int fd);
         int SocketCreator(const std::string &host);
         struct sockaddr_in address;
-        bool CheckResponse(Clients &client, std::string &headers, Response &res);
+        bool CheckResponse(Clients &client, std::string &headers);
         void addClient(int fd, short events);
         void closeClient(int index);
-        void CGIHandle(Clients &client, Response &res);
+        void CGIHandle(Clients &client);
+        void readFormData(int i); // get rest data
+        int new_connection(int i);
+
 
     public:
         void start();
