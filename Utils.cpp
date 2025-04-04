@@ -98,24 +98,21 @@ void Utils::directlyFormData(std::string body, Response &response, int eventFd)
     response.setContentTypeForPost(body);
 }
 
-void Utils::getFormData(std::string request, std::string body, Response &response, int eventFd)
+void Utils::getFormData(std::string request, Response &response, Clients &client)
 {
     int contentLength = response.getContentLength();
     int bytesRead;
     char buffer[10240] = {0};
+    std::string body;
     while (body.length() < (size_t)contentLength) {
-        bytesRead = recv(eventFd, buffer, sizeof(buffer) - 1, 0);
-        std::cout << buffer << std::endl;
+        bytesRead = recv(client.fd, buffer, sizeof(buffer) - 1, 0);
+        // std::cout << buffer << std::endl;
         if (bytesRead > 0)
             body.append(buffer, bytesRead);
         else
-        {
-            if (waitPoll(eventFd))
-                continue;
             break;
-        }
     }
-    response.setContentTypeForPost(body);
+    client.formData.append(body);
 }
 
 
@@ -131,7 +128,7 @@ int Utils::countSeperator(const std::string &buffer, const std::string &target) 
 }
 
 void Utils::doubleSeperator(std::string key, std::string &buffer,
-    Response &response, int eventFd)
+    Response &response, Clients &client)
 {
     std::string target = "=";
     size_t firstPos = key.find(target);
@@ -144,40 +141,37 @@ void Utils::doubleSeperator(std::string key, std::string &buffer,
         if (firstIndex != std::string::npos)
         {
             std::string temp = buffer.substr(firstIndex - 2);
-            if (buffer.substr(firstIndex - 2).length() != response.getContentLength())
-               getFormData(buffer, temp, response, eventFd);
-            else
+            if (buffer.substr(firstIndex - 2).length() == response.getContentLength())
                 response.setContentTypeForPost(temp);
+            else
+                client.formData.append(temp);
         }
     }
-    else
-        getFormData(buffer, "", response, eventFd);
     if (response.getContentTypeForPost().length() != response.getContentLength()) // DEBUG İÇİN
-        std::cout << "EKSİK KAYDETTİ! " << response.getContentTypeForPost().length()  << std::endl;
-
+        client.events = WAIT_FORM;
 }
 
-void Utils::parseContent(std::string &buffer, Response &response, int eventFd)
+void Utils::parseContent(std::string &buffer, Response &response, Clients &client)
 {
     std::string request(buffer);
     
-    response.setFile(getFileName(request, response));
-    response.setContent(readFile(response.getFile(), response));
-    response.setcontentType(get_content_type(request));
-    response.setContentLength(getContentLenght(request, response));
-    if (request.find("GET ") == 0)
-    response.setRequestType(GET);
-    else if(request.find("POST ") == 0)
+    if (client.events == REQUEST)
     {
-        response.setRequestType(POST);
-        std::cout << response.getContentTypeForPost().length() << std::endl;
-        std::cout << response.getContentLength() << std::endl;
-
-        if (response.getContentTypeForPost().length() != response.getContentLength())
-            Utils::doubleSeperator(response.getcontentType() , buffer, response, eventFd);
+        response.setFile(getFileName(request, response));
+        response.setContent(readFile(response.getFile(), response));
+        response.setcontentType(get_content_type(request));
+        response.setContentLength(getContentLenght(request, response));
+        if (request.find("GET ") == 0)
+        response.setRequestType(GET);
+        else if(request.find("POST ") == 0)
+        {
+            response.setRequestType(POST);
+            if (response.getContentTypeForPost().length() != response.getContentLength())
+                Utils::doubleSeperator(response.getcontentType() , buffer, response, client);
+        }
+        else if (request.find("DELETE ") == 0)
+            response.setRequestType(DELETE);
     }
-    else if (request.find("DELETE ") == 0)
-        response.setRequestType(DELETE);
 }
 
 

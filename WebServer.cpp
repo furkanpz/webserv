@@ -21,7 +21,7 @@ int WebServer::SocketCreator(const std::string &host){
     return (socket(res->ai_family, res->ai_socktype, res->ai_protocol));
 }
 
-void WebServer::CGIHandle(int clientFd, Response &res)
+void WebServer::CGIHandle(Clients &client, Response &res)
 {
     extern char **environ;
     int fd_out[2]; 
@@ -78,8 +78,8 @@ void WebServer::CGIHandle(int clientFd, Response &res)
         std::string header = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " +
                              Utils::intToString(output.size()) + "\r\n\r\n";
         std::string response = header + output;
-        send(clientFd, response.c_str(), response.length(), 0);
-        // close(clientFd);
+        std::cout << client.response.getContentLength() << std::endl;
+        client.client_send(client.fd, response.c_str(), response.size());
     }
 }
 
@@ -97,9 +97,7 @@ WebServer::WebServer(const std::string &host, int port) : Port(port), Host(host)
     if (listen(serverFd, SOMAXCONN) < 0) {close(serverFd); throw ServerExcp("Listen Error");}
 
     setNonBlocking(serverFd);
-
-    pollfd serverPollFd = {serverFd, POLLIN, 0};
-    pollFds.push_back(serverPollFd);
+    addClient(serverFd, POLLIN);
 }
 
 
@@ -118,75 +116,126 @@ void WebServer::setNonBlocking(int fd)
         throw ServerExcp("Fcntl Error");
 }
 
-bool WebServer::CheckResponse(int eventFd, std::string &headers, Response &res)
+bool WebServer::CheckResponse(Clients &client, std::string &headers, Response &res)
 {
     if (headers.find("Expect: 100-continue") != std::string::npos) {
         std::string continueResponse = "HTTP/1.1 100 Continue\r\n\r\n";
-        send(eventFd, continueResponse.c_str(), continueResponse.size(), 0);
-        if (Utils::waitPoll(eventFd))
-                Utils::directlyFormData("", res, eventFd);
-        Utils::parseContent(headers, res, eventFd);
+        // client.client_send(client.fd, continueResponse.c_str(), continueResponse.size());
+        // if (Utils::waitPoll(eventFd))
+                // Utils::directlyFormData("", res, eventFd);
+        Utils::parseContent(headers, res, client);
     }
     else
-        Utils::parseContent(headers, res, eventFd);
+        Utils::parseContent(headers, res, client);
     if (res.getisCGI())
-        return CGIHandle(eventFd, res), true;
+    {
+        if (client.events == WAIT_FORM)
+        {
+            std::cout << "WAIT_POLL" << std::endl;
+            return true;
+        }
+        else
+            return CGIHandle(client, res), true;
+    }
     return false;
 }
 
-void WebServer::ServerResponse(int eventFd)
+void WebServer::ServerResponse(Clients &client)
 {
-    Response    res;
     std::string headers;
     char        buffer[10240] = {0};
     int         bytesRead;
     int         contentLength = 0;
-
-    while ((bytesRead = recv(eventFd, buffer, sizeof(buffer) - 1, 0)) > 0) {
-        headers.append(buffer, bytesRead);
-        if (headers.find("\r\n\r\n") != std::string::npos)
-            break;
+    Response    &res = client.response;
+    
+    if (client.events == REQUEST)
+    {
+        while ((bytesRead = recv(client.fd, buffer, sizeof(buffer) - 1, 0)) > 0) {
+            headers.append(buffer, bytesRead);
+            if (headers.find("\r\n\r\n") != std::string::npos)
+                break;
+        }
     }
-    std::cout << headers << std::endl;
-    if (CheckResponse(eventFd, headers, res))
+    if (CheckResponse(client, headers, res))
         return;
     std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + 
                         Utils::intToString(res.getContent().length()) + "\r\n\r\n" + res.getContent();
-    send(eventFd, response.c_str(), response.length(), 0);
-    std::cout //<< methods[MAX_INT + res.getRequestType()] 
-               << "Response : " << res.getFile() << " Response code: " << res.getResponseCode() << std::endl;
+    client.client_send(client.fd, response.c_str(), response.size());
+    // std::cout //<< methods[MAX_INT + res.getRequestType()] 
+    //            << "Response : " << res.getFile() << " Response code: " << res.getResponseCode() << std::endl;
 
 }
 
+
+void WebServer::addClient(int fd, short events)
+{
+    pollfd clientPollFd = {fd, events, 0};
+    Clients newClient(clientPollFd, fd);
+    pollFds.push_back(clientPollFd);
+    clients.push_back(newClient);
+
+}
+
+void WebServer::closeClient(int index)
+{
+    std::cout << "BİTTİ ÇIKTI GİTTİ" << std::endl;
+    close(clients[index].poll->fd);
+    clients.erase(clients.begin() + index);
+    pollFds.erase(pollFds.begin() + index);
+}
+
 void WebServer::start() {
+    signal(SIGPIPE, SIG_IGN);
     std::cout << "Server listening on " << Host << ":" << Port << "..." << std::endl;
 
     while (true) {
         int events = poll(pollFds.data(), pollFds.size(), -1);
+        std::cout <<"event: " <<  events << std::endl;
         if (events < 0) {
             throw ServerExcp("Poll Error");
         }
-        std::cout <<"event: " <<  events << std::endl;
-
         for (int i = 0; i < pollFds.size(); i++) {
-            if (pollFds[i].revents & POLLIN) {
-                if (pollFds[i].fd == serverFd) {
+            if (i == 0)
+            {
+                if (pollFds[i].revents & POLLIN) {
                     int clientFd = accept(serverFd, (sockaddr *)&address, (socklen_t *)&addrLen);
                     if (clientFd < 0) { continue; }
 
                     std::cout << "New client connected: " << clientFd << std::endl;
-                    
-                    pollfd clientPollFd = {clientFd, POLLIN, 0};
-                    pollFds.push_back(clientPollFd);
                     setNonBlocking(clientFd);
-                } 
-                else 
-                {
-                    ServerResponse(pollFds[i].fd);
-                    close(pollFds[i].fd);
-                    pollFds.erase(pollFds.begin() + i);
-                    i--; 
+                    addClient(clientFd, POLLIN);
                 }
+            }
+            else
+            {
+                if (pollFds[i].revents & POLLIN)
+                {
+                    if (clients[i].events == WAIT_FORM)
+                    {
+                        std::cout << "BEFORE FORMDATA : " << clients[i].formData.size() << std::endl;
+                        while (true)
+                        {
+                            char buffer[10240];
+                            int bytesRead = recv(clients[i].fd, buffer, sizeof(buffer), 0);
+                            if (bytesRead > 0) {
+                                clients[i].formData.append(buffer, bytesRead);
+                            }
+                            else break;
+                        }
+                        std::cout << "AFTER FORMDATA : " << clients[i].formData.size() << std::endl;
+                        std::cout << "CONTENT-LENGTH : " <<  clients[i].response.getContentLength() << std::endl;
+                        if (clients[i].response.getContentLength() == clients[i].formData.size())
+                        {
+                            clients[i].events = NONE;
+                            clients[i].response.setContentTypeForPost(clients[i].formData);
+                        }
+                    }
+                    ServerResponse(clients[i]);
+                }
+                if (pollFds[i].revents & POLLOUT)
+                    std::cout << "POLL OUT VERIYOR LAAAN" << std::endl;
+                if (pollFds[i].revents & POLLHUP || pollFds[i].revents & POLLERR) 
+                    closeClient(i);
             }
         }
     }

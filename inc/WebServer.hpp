@@ -14,27 +14,29 @@
 #include <poll.h>
 #include <signal.h>
 #include <vector>
-
+#include "Clients.hpp"
 #define MAX_EVENTS 10 
 
 class Response;
+
 
 class WebServer {
     private:
         std::string Host;
         int serverFd, addrLen, Port;
-        pollfd *pollFd;
         std::vector<pollfd> pollFds;
+        std::vector<Clients> clients;
         struct addrinfo first, *res;
 
     private:
-        void ServerResponse(int);
+        void ServerResponse(Clients &);
         void setNonBlocking(int fd);
         int SocketCreator(const std::string &host);
         struct sockaddr_in address;
-        bool CheckResponse(int eventFd, std::string &headers, Response &res);
-        
-        void CGIHandle(int clientFd, Response &res);
+        bool CheckResponse(Clients &client, std::string &headers, Response &res);
+        void addClient(int fd, short events);
+        void closeClient(int index);
+        void CGIHandle(Clients &client, Response &res);
 
     public:
         void start();
