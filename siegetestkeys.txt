@@ -1,0 +1,7 @@
+siege -c 100 -t 1s --content-type "application/x-www-form-urlencoded"  'http://127.0.0.1:4444/cgi-bin/displayForm.py POST name=T&surname=T&age=T&nickname=T'
+siege -c 10 -t 30s http://127.0.0.1:4444 
+
+-c connection sayısı
+
+-t zaman sayısı
+
