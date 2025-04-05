@@ -4,8 +4,6 @@
 #include "sys/wait.h"
 
 
-
-
 int WebServer::SocketCreator(const std::string &host){
     addrLen = sizeof(address);
     address.sin_family = AF_INET;
@@ -26,7 +24,7 @@ void WebServer::CGIHandle(Clients &client)
 {
     extern char **environ;
     int fd_out[2]; 
-    int fd_in[2];  
+    int fd_in[2];
     if (pipe(fd_out) == -1 || pipe(fd_in) == -1)
         return;
 
@@ -153,14 +151,11 @@ void WebServer::ServerResponse(Clients &client)
             if (headers.find("\r\n\r\n") != std::string::npos)
                 break;
         }
-        if (headers.empty())
-            return ;
     }
     if (CheckResponse(client, headers))
         return;
     std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + 
                         Utils::intToString(client.response.getContent().length()) + "\r\n\r\n" + client.response.getContent();
-    
     Utils::print_response(client.response);
     client.client_send(client.fd, response.c_str(), response.size());
 }
@@ -177,7 +172,7 @@ void WebServer::addClient(int fd, short events)
 
 void WebServer::closeClient(int index)
 {
-    close(clients[index].poll->fd);
+    close(clients[index].fd);
     clients.erase(clients.begin() + index);
     pollFds.erase(pollFds.begin() + index);
 }

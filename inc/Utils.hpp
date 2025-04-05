@@ -13,11 +13,11 @@ class Utils
         static void parseContent(std::string &buffer, Clients &client);
         static std::string getFileName(std::string request, Response &response);
         static size_t getContentLenght(std::string request, Response &response);
-        static void doubleSeperator(std::string key, std::string &buffer, Response &response, Clients &client);
+        static void doubleSeperator(std::string key, std::string &buffer, Clients &client);
         static void getFormData(std::string request, Response &response, Clients &client);
-        static bool waitPoll(int eventFd);
         static int countSeperator(const std::string &buffer, const std::string &target);
         static void directlyFormData(std::string body, Response &response, int eventFd);
         static void print_response(Response &response);
+        static void getBufferFormData(std::string &buffer, Clients &client);
 
 };

@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dosya Yükleme</title>
+    <title>Ad Soyad Girişi</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-
         body {
             font-family: Arial, sans-serif;
             display: flex;
@@ -19,7 +18,6 @@
             height: 100vh;
             background-color: #f4f4f4;
         }
-
         .container {
             background-color: white;
             padding: 20px;
@@ -28,26 +26,16 @@
             width: 300px;
             text-align: center;
         }
-
         h2 {
             margin-bottom: 20px;
         }
-
-        .upload-btn {
-            display: inline-block;
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 20px;
+        input {
+            margin: 10px 0;
+            padding: 10px;
+            width: 90%;
+            border: 1px solid #ccc;
             border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            margin-bottom: 20px;
         }
-
-        .upload-btn:hover {
-            background-color: #45a049;
-        }
-
         button {
             padding: 10px 20px;
             background-color: #007BFF;
@@ -57,24 +45,21 @@
             font-size: 16px;
             cursor: pointer;
         }
-
         button:hover {
             background-color: #0056b3;
         }
     </style>
 </head>
 <body>
-
     <div class="container">
-        <h2>Dosya Yükleme Sayfası</h2>
-        <form action="/cgi-bin/upload.py" method="post" enctype="multipart/form-data">
-            <label for="file-upload" class="upload-btn">
-                Dosya Seç
-            </label>
-            <input type="file" id="file-upload" name="file" hidden>
-            <button type="submit" value="Upload">Yükle</button>
+        <h2>42 Form</h2>
+        <form action="/cgi-bin/displayForm.py" method="post">
+            <input type="text" name="name" placeholder="Name" required>
+            <input type="text" name="surname" placeholder="Surname" required>
+            <input type="text" name="age" placeholder="Age" required>
+            <input type="text" name="nickname" placeholder="42 Nick" required>
+            <button type="submit">Submit</button>
         </form>
     </div>
-
 </body>
 </html>

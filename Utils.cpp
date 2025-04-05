@@ -26,7 +26,7 @@ std::string Utils::readFile(const std::string &fileName, Response &response, int
         response.setResponseCode(code);
         return "";
     }
-    else if (fileName.find("cgi-bin") == 0)
+    else if (fileName.find("cgi-bin") != std::string::npos)
     {
         size_t temp = fileName.find("/");
         response.setisCGI(true);
@@ -67,26 +67,6 @@ size_t Utils::getContentLenght(std::string request, Response &response)
     }
     return (contentLength);
 }
-bool Utils::waitPoll(int eventFd)
-{
-    struct pollfd   pfd;
-    int             pollTimeout = 5000;
-    int             pollResult;
-    
-    pfd.fd = eventFd;
-    pfd.events = POLLIN;
-    pollResult = poll(&pfd, 1, pollTimeout);
-    if (pollResult > 0) {
-        if (pfd.revents & POLLIN) {
-            return true;
-        }
-    } else if (pollResult == 0) { // DEBUG
-        std::cerr << "Poll timeout: İstemciden veri alınamadı." << std::endl;
-    } else {
-        std::cerr << "Poll hatası: " << strerror(errno) << std::endl;
-    }
-    return false;
-}
 
 void Utils::directlyFormData(std::string body, Response &response, int eventFd)
 {
@@ -105,8 +85,7 @@ void Utils::getFormData(std::string request, Response &response, Clients &client
     char buffer[10240] = {0};
     std::string body;
     while (body.length() < (size_t)contentLength) {
-        bytesRead = recv(client.fd, buffer, sizeof(buffer) - 1, 0);
-        // std::cout << buffer << std::endl;
+        bytesRead = recv(client.fd, buffer, sizeof(buffer) - 1, 0);;
         if (bytesRead > 0)
             body.append(buffer, bytesRead);
         else
@@ -127,8 +106,7 @@ int Utils::countSeperator(const std::string &buffer, const std::string &target) 
     return count;
 }
 
-void Utils::doubleSeperator(std::string key, std::string &buffer,
-    Response &response, Clients &client)
+void Utils::doubleSeperator(std::string key, std::string &buffer, Clients &client)
 {
     std::string target = "=";
     size_t firstPos = key.find(target);
@@ -141,14 +119,26 @@ void Utils::doubleSeperator(std::string key, std::string &buffer,
         if (firstIndex != std::string::npos)
         {
             std::string temp = buffer.substr(firstIndex - 2);
-            if (temp.length() == response.getContentLength())
-                response.setContentTypeForPost(temp);
+            if (temp.length() == client.response.getContentLength())
+                client.response.setContentTypeForPost(temp);
             else
                 client.formData.append(temp);
         }
     }
-    if (response.getContentTypeForPost().length() != response.getContentLength()) // DEBUG İÇİN
+    if (client.response.getContentTypeForPost().length() != client.response.getContentLength()) // DEBUG İÇİN
         client.events = WAIT_FORM;
+}
+
+void Utils::getBufferFormData(std::string &buffer, Clients &client)
+{
+    std::string contentType = client.response.getcontentType().substr(0, client.response.getcontentType().find(";"));
+    if (!contentType.find("multipart/form-data"))
+        Utils::doubleSeperator(client.response.getcontentType() , buffer, client);
+    else if (!contentType.find("application/x-www-form-urlencoded"))
+    {
+        if (buffer.find("\r\n\r\n") != std::string::npos)
+            client.response.setContentTypeForPost(buffer.substr(buffer.find("\r\n\r\n") + 4));
+    }
 }
 
 void Utils::parseContent(std::string &buffer, Clients &client)
@@ -167,11 +157,12 @@ void Utils::parseContent(std::string &buffer, Clients &client)
         else if(request.find("POST ") == 0)
         {
             response.setRequestType(POST);
-            if (response.getContentLength() > 0)
-                Utils::doubleSeperator(response.getcontentType() , buffer, response, client);
-        }
-        else 
+            getBufferFormData(buffer, client);
+        } 
+        else if (request.find("GET ") == 0)
             response.setRequestType(GET);
+        else
+            response.setRequestType(NONE);
     }
 }
 
@@ -191,16 +182,18 @@ std::string Utils::getFileName(std::string request, Response &response)
 
     std::string path = request.substr(start, end - start);
     if (path == "/")
-    return "index.html";
+    return "www/index.html";
     
     if (path[0] == '/')
-    path = path.substr(1);
+        path = path.substr(1);
     
-    return path;
+    return "www/" + path;
 }
 
 void Utils::print_response(Response &response)
 {
+    if (response.getRequestType() == NONE)
+        return ;
     std::string meth("[" + methods[MAX_INT - response.getRequestType()] + "]");
     std::cout << meth << std::setw(3)
                << " /" << response.getFile() << " " << response.getResponseCode() << std::endl;
