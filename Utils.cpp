@@ -47,8 +47,12 @@ std::string Utils::readFile(const std::string &fileName, Response &response, int
             return "<h1>403 FORBIDDEN</h1>";
         }
     }
-    else if (fileName.substr(0, 7) == "cgi-bin")
+    else if (fileName.find("cgi-bin") != std::string::npos)
     {
+        std::string pureFile = fileName.substr(4); // "www/" ün uzunluğu 4 olmasından dolayı 4 yazıldı sonrasında ana klasör ismine göre pureFile Alınacak!
+        pureFile = pureFile.substr(0, pureFile.find("/"));
+        if (pureFile != "cgi-bin")
+            return "";
         if (access(fileName.c_str(), F_OK) == 0)
         {
             response.setisCGI(true);
@@ -183,7 +187,7 @@ void Utils::parseContent(std::string &buffer, Clients &client)
     if (client.events == REQUEST && client.response.getRequestType() == NONE)
     {
         response.setFile(getFileName(request, response));
-    std::cout << "DEBUG: " << response.getFile() << std::endl;
+    // std::cout << "DEBUG: " << response.getFile() << std::endl;
         response.setContent(readFile(response.getFile(), response));
         response.setcontentType(get_content_type(request));
         response.setContentLength(getContentLenght(request, response));
