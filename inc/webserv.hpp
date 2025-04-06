@@ -32,6 +32,7 @@ static const std::string methods[3] = {"GET", "POST", "DELETE"};
 #define OK 200
 #define NOTFOUND 404
 #define BADREQUEST 400
+#define FORBIDDEN 403
 #define MAX_INT 2147483647
 
 #define GET 2147483647

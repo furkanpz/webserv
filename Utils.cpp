@@ -15,7 +15,7 @@ std::string Utils::readFile(const std::string &fileName, Response &response, int
         size_t dotPos = fileName.find_last_of(".");
         if (dotPos == std::string::npos) {
             response.setResponseCode(NOTFOUND);
-            std::ifstream nf("notFound.html");
+            std::ifstream nf("www/notFound.html");
             std::stringstream buffer;
             if (nf) {
                 buffer << nf.rdbuf();
