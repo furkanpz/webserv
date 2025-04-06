@@ -19,5 +19,6 @@ class Utils
         static void directlyFormData(std::string body, Response &response, int eventFd);
         static void print_response(Response &response);
         static void getBufferFormData(std::string &buffer, Clients &client);
+        static bool isDirectory(const std::string& path);
 
 };

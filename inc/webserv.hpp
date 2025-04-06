@@ -1,17 +1,10 @@
 #pragma once
 
-#include <sys/socket.h>
-#include <cstring>
-#include <iostream>
-#include <netinet/in.h>
-#include <unistd.h>
-#include <arpa/inet.h>
 #include <string.h>
 #include <cstdlib>
 #include <cstdio>
 #include <fstream>
 #include <sstream>
-#include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
@@ -20,10 +13,12 @@
 #include <cstring>
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 #include <poll.h>
 #include <signal.h>
 #include <iostream>
 #include <vector>
+
 static const std::string methods[3] = {"GET", "POST", "DELETE"};
 
 #define MAX_EVENTS 10 

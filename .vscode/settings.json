@@ -80,6 +80,7 @@
         "ranges": "cpp",
         "stop_token": "cpp",
         "thread": "cpp",
-        "semaphore": "cpp"
+        "semaphore": "cpp",
+        "forward_list": "cpp"
     }
 }

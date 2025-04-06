@@ -10,10 +10,10 @@ std::string Utils::intToString(int num)
 
 std::string Utils::readFile(const std::string &fileName, Response &response, int code)
 {
+    std::cout << "filename: " + fileName << std::endl;
     std::ifstream file(fileName.c_str());
     if (!file) {
-        size_t dotPos = fileName.find_last_of(".");
-        if (dotPos == std::string::npos) {
+        if (!isDirectory("/" + fileName)) {
             response.setResponseCode(NOTFOUND);
             std::ifstream nf("www/notFound.html");
             std::stringstream buffer;
@@ -21,7 +21,28 @@ std::string Utils::readFile(const std::string &fileName, Response &response, int
                 buffer << nf.rdbuf();
                 return buffer.str();
             }
-            return "<h1>404 Not Found</h1>";
+            response.setResponseCode(FORBIDDEN);
+            return "<h1>403 FORBIDDEN</h1>";
+        }
+        else
+        {
+            std::string _fileName = "/" + fileName;
+            std::string possible_path = fileName + "/index.html";
+            std::cout << "eğer klasorse" << std::endl;
+            if (access(_fileName.c_str(), X_OK) != 0)
+            {
+                std::cout << "okuma yetkisi yoksa" << std::endl;
+
+                response.setResponseCode(FORBIDDEN);
+                return "<h1>403 FORBIDDEN</h1>";
+            }
+            else if (!access(possible_path.c_str(), R_OK))
+            {
+                std::cout << "index.html varsa" << std::endl;
+                response.setResponseCode(code);
+                return possible_path;
+            }
+            
         }
         response.setResponseCode(code);
         return "";
@@ -149,6 +170,7 @@ void Utils::parseContent(std::string &buffer, Clients &client)
     if (client.events == REQUEST && client.response.getRequestType() == NONE)
     {
         response.setFile(getFileName(request, response));
+    std::cout << "DEBUG: " << response.getFile() << std::endl;
         response.setContent(readFile(response.getFile(), response));
         response.setcontentType(get_content_type(request));
         response.setContentLength(getContentLenght(request, response));
@@ -166,6 +188,14 @@ void Utils::parseContent(std::string &buffer, Clients &client)
     }
 }
 
+
+bool Utils::isDirectory(const std::string& path) {
+    struct stat s;
+    if (stat(path.c_str(), &s) == 0) {
+        return S_ISDIR(s.st_mode);
+    }
+    return false;
+}
 
 std::string Utils::getFileName(std::string request, Response &response)
 {
@@ -186,7 +216,8 @@ std::string Utils::getFileName(std::string request, Response &response)
     
     if (path[0] == '/')
         path = path.substr(1);
-    
+    if (isDirectory(path))
+        return path;
     return "www/" + path;
 }
 

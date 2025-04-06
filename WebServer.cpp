@@ -129,12 +129,13 @@ bool WebServer::CheckResponse(Clients &client, std::string &headers)
 
     Utils::parseContent(headers, client);
     // DEBUG
-    std::cout << "DEBUG: " << client.response.getFile() << std::endl;
     //DEBUG
     if (client.response.getisCGI())
     {
         if (client.events == WAIT_FORM)
+        {
             return true;
+        }
         else
             return CGIHandle(client), true;
     }
