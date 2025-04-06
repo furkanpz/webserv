@@ -8,58 +8,71 @@ std::string Utils::intToString(int num)
     return ss.str();
 }
 
+std::string returnNotFound(Response &response)
+{
+    response.setResponseCode(NOTFOUND);
+    std::ifstream nf("www/notFound.html");
+    std::stringstream buffer;
+    if (nf) {
+        buffer << nf.rdbuf();
+        return buffer.str();
+    }
+    return "";
+}
+
 std::string Utils::readFile(const std::string &fileName, Response &response, int code)
 {
-    std::cout << "filename: " + fileName << std::endl;
-    std::ifstream file(fileName.c_str());
-    if (!file) {
-        if (!isDirectory("/" + fileName)) {
-            response.setResponseCode(NOTFOUND);
-            std::ifstream nf("www/notFound.html");
-            std::stringstream buffer;
-            if (nf) {
-                buffer << nf.rdbuf();
+    if (isDirectory(fileName))
+    {
+        std::string indexPath = fileName + "/index.html";
+        if (access(indexPath.c_str(), R_OK) == 0)
+        {
+            std::ifstream indexFile(indexPath.c_str());
+            if (indexFile)
+            {
+                std::stringstream buffer;
+                buffer << indexFile.rdbuf();
+                response.setResponseCode(code);
                 return buffer.str();
             }
-            response.setResponseCode(FORBIDDEN);
-            return "<h1>403 FORBIDDEN</h1>";
-        }
-        else
-        {
-            std::string _fileName = "/" + fileName;
-            std::string possible_path = fileName + "/index.html";
-            std::cout << "eğer klasorse" << std::endl;
-            if (access(_fileName.c_str(), X_OK) != 0)
+            else
             {
-                std::cout << "okuma yetkisi yoksa" << std::endl;
-
                 response.setResponseCode(FORBIDDEN);
                 return "<h1>403 FORBIDDEN</h1>";
             }
-            else if (!access(possible_path.c_str(), R_OK))
-            {
-                std::cout << "index.html varsa" << std::endl;
-                response.setResponseCode(code);
-                return possible_path;
-            }
-            
         }
-        response.setResponseCode(code);
-        return "";
+        else
+        {
+            response.setResponseCode(FORBIDDEN);
+            return "<h1>403 FORBIDDEN</h1>";
+        }
     }
-    else if (fileName.find("cgi-bin") != std::string::npos)
+    else if (fileName.substr(0, 7) == "cgi-bin")
     {
-        size_t temp = fileName.find("/");
-        response.setisCGI(true);
-        response.setResponseCode(code);
-        return "";
+        if (access(fileName.c_str(), F_OK) == 0)
+        {
+            response.setisCGI(true);
+            response.setResponseCode(code);
+            return "";
+        }
+        else
+            return returnNotFound(response);
     }
-    
-    response.setResponseCode(code);
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-    return buffer.str();
+    else
+    {
+        std::ifstream file(fileName.c_str());
+        if (file)
+        {
+            std::stringstream buffer;
+            buffer << file.rdbuf();
+            response.setResponseCode(code);
+            return buffer.str();
+        }
+        else
+            return returnNotFound(response);
+    }
 }
+
 
 std::string get_content_type(const std::string& http_buffer) {
     std::istringstream stream(http_buffer);
