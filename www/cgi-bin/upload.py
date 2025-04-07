@@ -116,7 +116,7 @@ response += """
 </body>
 </html>
 """
-
+header = None
 if "file" in form.keys():
     file_item = form["file"]
     
@@ -124,6 +124,9 @@ if "file" in form.keys():
         header = "HTTP/1.1 200 OK\r\n"
     else:
         header = "HTTP/1.1 400 Bad Request\r\n"
+if (header is None):
+    header = "HTTP/1.1 405 Method Not Allowed\r\n"
+    header += "Allow: POST\r\n"
         
 header += "Content-Type: text/html\r\nContent-Length: " + str(len(response)) + "\r\n\r\n"
 print(header + response)

@@ -183,16 +183,24 @@ void WebServer::closeClient(int index)
 
 void WebServer::readFormData(int i)
 {
+    bool tempChunk = clients[i].response.getIsChunked();
     while (true)
     {
         char buffer[10240];
         int bytesRead = recv(clients[i].fd, buffer, sizeof(buffer), 0);
         if (bytesRead > 0) {
-            clients[i].formData.append(buffer, bytesRead);
+            if (tempChunk)
+            {
+                std::string temp = buffer;
+                Utils::parseChunked(clients[i], temp, 1);
+            }
+            else
+                clients[i].formData.append(buffer, bytesRead);
         }
         else break;
     }
-    if (clients[i].response.getContentLength() == clients[i].formData.size())
+    if (clients[i].response.getContentLength() == clients[i].formData.size()
+        || tempChunk != clients[i].response.getIsChunked())
     {
         clients[i].response.setContentTypeForPost(clients[i].formData);
         if (clients[i].response.getisCGI())

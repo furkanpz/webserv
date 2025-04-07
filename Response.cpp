@@ -73,7 +73,7 @@ void Response::setcontentType(std::string _type)
 
 Response::Response() : contentTypeForPost(""), file(""), requestType(NONE), 
     responseCode(-1), content(""), isCGI(false), ContentLenght(0),
-    contentType("")
+    contentType(""), isChunked(false)
 {
     
 }
@@ -86,4 +86,13 @@ std::string Response::getContentTypeForPost(void) const
 void Response::setContentTypeForPost(std::string _contentTypeForPost)
 {
     contentTypeForPost = _contentTypeForPost;
+}
+bool Response::getIsChunked() const
+{
+    return isChunked;
+}
+
+void Response::setIsChunked(bool _val)
+{
+    this->isChunked = _val;
 }

@@ -12,6 +12,7 @@ class Response{
         int ContentLenght;
         std::string contentType;
         bool isCGI;
+        bool isChunked;
     public:
     Response();
 
@@ -36,6 +37,9 @@ class Response{
 
     bool getisCGI(void) const;
     void setisCGI(bool _tf);
+
+    bool getIsChunked() const;
+    void setIsChunked(bool _val);
 
     std::string getContentTypeForPost(void) const;
     void setContentTypeForPost(std::string _contentTypeForPost);

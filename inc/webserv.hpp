@@ -37,3 +37,5 @@ static const std::string methods[3] = {"GET", "POST", "DELETE"};
 #define NONE 0
 #define REQUEST 1
 #define WAIT_FORM 2
+
+#define HOME_DIR "www/"

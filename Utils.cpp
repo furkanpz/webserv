@@ -11,7 +11,7 @@ std::string Utils::intToString(int num)
 std::string returnNotFound(Response &response)
 {
     response.setResponseCode(NOTFOUND);
-    std::ifstream nf("www/notFound.html");
+    std::ifstream nf(HOME_DIR + std::string("notFound.html"));
     std::stringstream buffer;
     if (nf) {
         buffer << nf.rdbuf();
@@ -36,16 +36,11 @@ std::string Utils::readFile(const std::string &fileName, Response &response, int
                 return buffer.str();
             }
             else
-            {
-                response.setResponseCode(FORBIDDEN);
-                return "<h1>403 FORBIDDEN</h1>";
-            }
+                return returnNotFound(response);
         }
         else
-        {
-            response.setResponseCode(FORBIDDEN);
-            return "<h1>403 FORBIDDEN</h1>";
-        }
+            return returnNotFound(response);
+
     }
     else if (fileName.find("cgi-bin") != std::string::npos)
     {
@@ -103,6 +98,11 @@ size_t Utils::getContentLenght(std::string request, Response &response)
         std::string temp;
         iss >> temp >> contentLength;
     }
+    if (request.find("Transfer-Encoding: chunked") != std::string::npos)
+    {
+        response.setIsChunked(true);
+        contentLength = -1;
+    }
     return (contentLength);
 }
 
@@ -144,6 +144,60 @@ int Utils::countSeperator(const std::string &buffer, const std::string &target) 
     return count;
 }
 
+void Utils::parseChunked(Clients &client, std::string &Body, int Type)
+{
+    if (!Type)
+    {
+        size_t headerEnd = Body.find("\r\n\r\n");
+        if (headerEnd != std::string::npos)
+            Body = Body.substr(headerEnd + 4);
+    }
+
+    std::istringstream stream(Body);
+    std::string result;
+    std::string sizeLine;
+
+    int chunkSize = 0;
+    while (std::getline(stream, sizeLine)) {
+        if (!sizeLine.empty() && sizeLine.back() == '\r')
+            sizeLine.pop_back();
+
+        std::istringstream hexStream(sizeLine);
+        hexStream >> std::hex >> chunkSize;
+
+        if (chunkSize == 0)
+        {
+            std::string dummy;
+            std::getline(stream, dummy);
+            chunkSize == -1;
+            break;
+        }
+        char *buffer = new char[chunkSize];
+        stream.read(buffer, chunkSize);
+        result.append(buffer, chunkSize);
+        delete[] buffer;
+
+        std::string dummy;
+        std::getline(stream, dummy);
+    }
+    if (chunkSize != -1)
+    {
+        client.events = WAIT_FORM;
+        client.formData.append(result);
+    }
+    else
+    {
+        client.formData.append(result);
+        if (client.events != WAIT_FORM)
+        client.response.setContentTypeForPost(result);
+        client.response.setIsChunked(false);
+        // std::cout << client.formData.length() << std::endl;
+
+    }
+
+    std::cout << "SON DURUM " << result.length() << " SON DURUM" << std::endl;
+}
+
 void Utils::doubleSeperator(std::string key, std::string &buffer, Clients &client)
 {
     std::string target = "=";
@@ -170,7 +224,9 @@ void Utils::doubleSeperator(std::string key, std::string &buffer, Clients &clien
 void Utils::getBufferFormData(std::string &buffer, Clients &client)
 {
     std::string contentType = client.response.getcontentType().substr(0, client.response.getcontentType().find(";"));
-    if (!contentType.find("multipart/form-data"))
+    if (client.response.getIsChunked())
+        parseChunked(client, buffer, 0);
+    else if (!contentType.find("multipart/form-data"))
         Utils::doubleSeperator(client.response.getcontentType() , buffer, client);
     else if (!contentType.find("application/x-www-form-urlencoded"))
     {
@@ -229,13 +285,13 @@ std::string Utils::getFileName(std::string request, Response &response)
 
     std::string path = request.substr(start, end - start);
     if (path == "/")
-    return "www/index.html";
+    return HOME_DIR + std::string("index.html");
     
     if (path[0] == '/')
         path = path.substr(1);
     if (isDirectory(path))
         return path;
-    return "www/" + path;
+    return HOME_DIR + path;
 }
 
 void Utils::print_response(Response &response)
