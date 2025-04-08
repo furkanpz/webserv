@@ -87,7 +87,7 @@ void WebServer::CGIHandle(Clients &client)
     }
 }
 
-WebServer::WebServer(const std::string &host, int port) : Port(port), Host(host) {
+WebServer::WebServer(const std::string &host, int port) : Host(host), Port(port) {
     serverFd = SocketCreator(host);
     if (serverFd == 0) {freeaddrinfo(res); close(serverFd); throw ServerExcp("Socket Error");}
     int opt = 1;
@@ -107,7 +107,7 @@ WebServer::WebServer(const std::string &host, int port) : Port(port), Host(host)
 
 WebServer::~WebServer()
 {
-    for (int x = 0; x < pollFds.size(); x++)
+    for (size_t x = 0; x < pollFds.size(); x++)
     {
         close(pollFds[x].fd);
     }
@@ -148,6 +148,8 @@ void WebServer::ServerResponse(Clients &client)
     char        buffer[10240] = {0};
     int         bytesRead;
     int         contentLength = 0;
+
+    contentLength = 0;
     if (client.events == REQUEST)
     {
         while ((bytesRead = recv(client.fd, buffer, sizeof(buffer) - 1, 0)) > 0) {
@@ -208,7 +210,7 @@ void WebServer::readFormData(int i)
     }
 }
 
-int WebServer::new_connection(int i)
+int WebServer::new_connection()
 {
     int clientFd = accept(serverFd, (sockaddr *)&address, (socklen_t *)&addrLen);
     if (clientFd < 0) { return clientFd; }
@@ -226,8 +228,8 @@ void WebServer::start() {
         if (events < 0) {
             throw ServerExcp("Poll Error");
         }
-        for (int i = 0; i < pollFds.size(); i++) {
-            if (i == 0 && (pollFds[i].revents && POLLIN) && new_connection(i) < 0)
+        for (size_t i = 0; i < pollFds.size(); i++) {
+            if (i == 0 && (pollFds[i].revents && POLLIN) && new_connection() < 0)
                 continue;
             else
             {

@@ -4,43 +4,43 @@
 
 class Response{
     private:
+        std::string contentTypeForPost;
+        std::string file;
         int requestType;
         int responseCode;
-        std::string contentTypeForPost;
         std::string content;
-        std::string file;
-        int ContentLenght;
-        std::string contentType;
         bool isCGI;
+        size_t ContentLenght;
+        std::string contentType;
         bool isChunked;
     public:
-    Response();
+        Response();
 
-    int getRequestType(void) const;
-    void setRequestType(int _requestType);
+        int getRequestType(void) const;
+        void setRequestType(int _requestType);
 
-    std::string getcontentType(void) const;
-    void setcontentType(std::string _type);
+        std::string getcontentType(void) const;
+        void setcontentType(std::string _type);
 
 
-    int getContentLength(void) const;
-    void setContentLength(int _Lenght);
+        size_t getContentLength(void) const;
+        void setContentLength(size_t _Lenght);
 
-    int getResponseCode(void) const;
-    void setResponseCode(int _responseCode);
+        int getResponseCode(void) const;
+        void setResponseCode(int _responseCode);
 
-    std::string getContent(void) const;
-    void setContent(std::string _content);
+        std::string getContent(void) const;
+        void setContent(std::string _content);
 
-    std::string getFile(void) const;
-    void setFile(std::string _file);
+        std::string getFile(void) const;
+        void setFile(std::string _file);
 
-    bool getisCGI(void) const;
-    void setisCGI(bool _tf);
+        bool getisCGI(void) const;
+        void setisCGI(bool _tf);
 
-    bool getIsChunked() const;
-    void setIsChunked(bool _val);
+        bool getIsChunked() const;
+        void setIsChunked(bool _val);
 
-    std::string getContentTypeForPost(void) const;
-    void setContentTypeForPost(std::string _contentTypeForPost);
-};
+        std::string getContentTypeForPost(void) const;
+        void setContentTypeForPost(std::string _contentTypeForPost);
+    };

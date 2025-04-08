@@ -89,8 +89,6 @@ std::string get_content_type(const std::string& http_buffer) {
 size_t Utils::getContentLenght(std::string request, Response &response)
 {
     size_t  contentLength = 0;
-    char    buffer[10240] = {0};
-    long    bytesRead;
 
     size_t pos = request.find("Content-Length:");
     if (pos != std::string::npos) {
@@ -116,7 +114,7 @@ void Utils::directlyFormData(std::string body, Response &response, int eventFd)
     response.setContentTypeForPost(body);
 }
 
-void Utils::getFormData(std::string request, Response &response, Clients &client)
+void Utils::getFormData(Response &response, Clients &client)
 {
     int contentLength = response.getContentLength();
     int bytesRead;
@@ -164,14 +162,14 @@ void Utils::parseChunked(Clients &client, std::string &Body, int Type)
 
         std::istringstream hexStream(sizeLine);
         hexStream >> std::hex >> chunkSize;
-
         if (chunkSize == 0)
         {
             std::string dummy;
             std::getline(stream, dummy);
-            chunkSize == -1;
+            chunkSize = -1;
             break;
         }
+        exit(1);
         char *buffer = new char[chunkSize];
         stream.read(buffer, chunkSize);
         result.append(buffer, chunkSize);
@@ -191,7 +189,7 @@ void Utils::parseChunked(Clients &client, std::string &Body, int Type)
         if (client.events != WAIT_FORM)
         client.response.setContentTypeForPost(result);
         client.response.setIsChunked(false);
-        // std::cout << client.formData.length() << std::endl;
+        std::cout << client.formData.length() << std::endl;
 
     }
 
@@ -242,7 +240,7 @@ void Utils::parseContent(std::string &buffer, Clients &client)
     
     if (client.events == REQUEST && client.response.getRequestType() == NONE)
     {
-        response.setFile(getFileName(request, response));
+        response.setFile(getFileName(request));
     // std::cout << "DEBUG: " << response.getFile() << std::endl;
         response.setContent(readFile(response.getFile(), response));
         response.setcontentType(get_content_type(request));
@@ -270,7 +268,7 @@ bool Utils::isDirectory(const std::string& path) {
     return false;
 }
 
-std::string Utils::getFileName(std::string request, Response &response)
+std::string Utils::getFileName(std::string request)
 {
     size_t pos = request.find(" ");
     if (pos == std::string::npos) {

@@ -4,6 +4,7 @@
 WebServer *g_server = NULL;
 
 void ServerKill(int sig) {
+    (void) sig;
     delete g_server;
     std::cout << "\nServer Killed!" << std::endl;
     exit(1);

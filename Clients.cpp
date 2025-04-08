@@ -1,7 +1,7 @@
 #include "Clients.hpp"
 
-Clients::Clients(pollfd &newPoll, int fd) : poll(&newPoll), fd(fd),
-    formData(""), requestType(-1), events(REQUEST)
+Clients::Clients(pollfd &newPoll, int fd) : requestType(-1), poll(&newPoll), fd(fd),
+    formData(""), events(REQUEST)
 {
 
 }
@@ -31,5 +31,4 @@ void Clients::client_send(int _int, const void *v, size_t s)
     this->response.setisCGI(false);
     this->formData = "";
     this->events = REQUEST;
-
 }

@@ -24,7 +24,7 @@ class WebServer {
         void closeClient(int index);
         void CGIHandle(Clients &client);
         void readFormData(int i); // get rest data
-        int new_connection(int i);
+        int new_connection();
 
 
     public:

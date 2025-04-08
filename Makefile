@@ -7,7 +7,7 @@ RM = rm -rf
 
 TESTERFILE = tester 
 
-CFLAGS = -std=c++98 -g # -Wall -Wextra -Werror -std=c++98
+CFLAGS = -std=c++98 -g  -Wall -Wextra -Werror -std=c++98
 OBJS = $(SRCS:.cpp=.o)
 
 %.o: %.cpp

@@ -8,10 +8,10 @@ class Clients {
         int         requestType;
         
     public:
-        int         events;
-        std::string formData;
         pollfd      *poll;
         int         fd;
+        std::string formData;
+        int         events;
         Response response;
 
         Clients(pollfd &newPoll, int);
