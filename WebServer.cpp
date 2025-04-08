@@ -55,8 +55,8 @@ void WebServer::CGIHandle(Clients &client)
             char *argv[] = { (char *)"python3", (char *)scriptFile.c_str(), NULL };
             execve("/usr/bin/python3", argv, environ);
         #else
-            char *argv[] = { (char *)"python3.10", (char *)scriptFile.c_str(), NULL };
-            execve("/bin/python3.10", argv, environ);
+            char *argv[] = { (char *)"python3.12", (char *)scriptFile.c_str(), NULL };
+            execve("/bin/python3.12", argv, environ);
         #endif
         std::cerr << "ERROR " << std::endl;
         exit(1);

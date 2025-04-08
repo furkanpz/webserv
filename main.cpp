@@ -16,7 +16,7 @@ int main(int ac, char **av)
     {
         (void)av; // wall werror wextra sussun diye koydum şimdilik
         try {
-            WebServer *serv  = new WebServer("127.0.0.1", 4444);
+            WebServer *serv  = new WebServer("127.0.0.1", 4443);
             g_server = serv;
             signal(SIGINT, ServerKill);
             signal(SIGPIPE, SIG_IGN);
