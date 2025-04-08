@@ -11,7 +11,7 @@ std::string Utils::intToString(int num)
 std::string returnNotFound(Response &response)
 {
     response.setResponseCode(NOTFOUND);
-    std::ifstream nf(HOME_DIR + std::string("notFound.html"));
+    std::ifstream nf(std::string("www/notFound.html").c_str());
     std::stringstream buffer;
     if (nf) {
         buffer << nf.rdbuf();
@@ -159,8 +159,8 @@ void Utils::parseChunked(Clients &client, std::string &Body, int Type)
 
     int chunkSize = 0;
     while (std::getline(stream, sizeLine)) {
-        if (!sizeLine.empty() && sizeLine.back() == '\r')
-            sizeLine.pop_back();
+        if (!sizeLine.empty() && sizeLine[sizeLine.size() - 1] && sizeLine[sizeLine.size() - 1] == '\r')
+            sizeLine.erase(sizeLine.end() - 1);
 
         std::istringstream hexStream(sizeLine);
         hexStream >> std::hex >> chunkSize;

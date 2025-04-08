@@ -18,6 +18,8 @@
 #include <signal.h>
 #include <iostream>
 #include <vector>
+#include <iomanip>
+
 
 static const std::string methods[3] = {"GET", "POST", "DELETE"};
 
