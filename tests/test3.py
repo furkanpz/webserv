@@ -21,6 +21,7 @@ def send_chunked_request_with_pdf(host, port, file_path):
     chunk_size = 1024  # her chunk'ın büyüklüğü 1 KB
     full_request = headers.encode()  # headers'ı baştan byte formatında başlatıyoruz
     index = 0
+    i = 0
     while index < len(file_data):
         # Her chunk'ın boyutunu hexadecimal formatta al
         chunk = file_data[index:index + chunk_size]
@@ -29,10 +30,8 @@ def send_chunked_request_with_pdf(host, port, file_path):
         full_request += (chunk_length + "\r\n").encode()  # Chunk boyutu byte formatına çevir
         full_request += chunk  # Chunk verisini byte formatında ekle
         full_request += b"\r\n"  # Chunk sonu (byte formatında)
-
         index += chunk_size
 
-    # Son chunk (0 boyutuyla)
     full_request += b"0\r\n\r\n"
 
     # Veriyi tek seferde gönder

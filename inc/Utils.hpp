@@ -21,4 +21,5 @@ class Utils
         static void getBufferFormData(std::string &buffer, Clients &client);
         static bool isDirectory(const std::string& path);
         static void parseChunked(Clients &client, std::string &Body, int Type);
+        static void parseChunked2(Clients &client, std::string &Body, int Type);
 };

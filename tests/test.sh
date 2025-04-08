@@ -1,0 +1,1 @@
+curl -H "Transfer-Encoding: chunked" -H "Expect:" -F "file=@en.subject.pdf" http://127.0.0.1:4444/cgi-bin/upload.py

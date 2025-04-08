@@ -34,7 +34,7 @@ void WebServer::CGIHandle(Clients &client)
         close(fd_in[0]); close(fd_in[1]);
         return;
     }
-    else if (pid == 0) 
+    else if (pid == 0)
     {
         if (client.response.getRequestType() == POST) {
             setenv("CONTENT_TYPE", client.response.getcontentType().c_str(), 1);
@@ -191,13 +191,13 @@ void WebServer::readFormData(int i)
         char buffer[10240];
         int bytesRead = recv(clients[i].fd, buffer, sizeof(buffer), 0);
         if (bytesRead > 0) {
+            clients[i].formData.append(buffer, bytesRead);
             if (tempChunk)
             {
-                std::string temp = buffer;
-                Utils::parseChunked(clients[i], temp, 1);
+                if (clients[i].formData.find("0\r\n\r\n") != std::string::npos) {
+                    Utils::parseChunked(clients[i], clients[i].formData, 1);
+                    }
             }
-            else
-                clients[i].formData.append(buffer, bytesRead);
         }
         else break;
     }

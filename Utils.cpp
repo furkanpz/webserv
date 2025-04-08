@@ -142,59 +142,160 @@ int Utils::countSeperator(const std::string &buffer, const std::string &target) 
     return count;
 }
 
+// void Utils::parseChunked(Clients &client, std::string &Body, int Type)
+// {
+//     if (!Type)
+//     {
+//         size_t headerEnd = Body.find("\r\n\r\n");
+//         if (headerEnd != std::string::npos)
+//             Body = Body.substr(headerEnd + 4);
+//     }
+
+//     std::istringstream stream(Body);
+//     std::string result;
+//     std::string sizeLine;
+//     std::string temp;
+
+//     std::getline(stream, sizeLine);
+//     int chunkSize = 0;
+//     while (!sizeLine.empty()) {
+//         // if (!sizeLine.empty() && sizeLine[sizeLine.size() - 1] && sizeLine[sizeLine.size() - 1] == '\r')
+//         //     sizeLine.erase(sizeLine.end() - 1);
+//         std::istringstream hexStream(sizeLine);
+//         hexStream >> std::hex >> chunkSize;
+//         if (chunkSize == 0)
+//         {
+//             // std::string dummy;
+//             // std::getline(stream, dummy);
+//             chunkSize = -1;
+//             break;
+//         }
+//         std::cout << "SON DURUM " << chunkSize << " SON DURUM" << std::endl;
+//         exit(1);
+//         char *buffer = new char[chunkSize];
+//         stream.read(buffer, chunkSize);
+//         temp.append(buffer, chunkSize);
+//         if (temp.length() == chunkSize)
+//             std::getline(stream, sizeLine);
+//         delete[] buffer;
+//     }
+//     if (chunkSize != -1)
+//     {
+//         client.events = WAIT_FORM;
+//         client.formData.append(result);
+//     }
+//     else
+//     {
+//         client.formData.append(result);
+//         if (client.events != WAIT_FORM)
+//         client.response.setContentTypeForPost(result);
+//         client.response.setIsChunked(false);
+//         std::cout << client.formData.length() << std::endl;
+
+//     }
+
+// }
+
+std::string cakmagetline(std::string& ver, std::istringstream &stream, int type)
+{
+   std::string temp;
+
+   char *buffer = new char[100240];
+   if (type == 0)
+   {
+       while (temp.find("\r\n") == std::string::npos && !stream.eof())
+       {
+           stream.read(buffer, 1);
+           temp.append(buffer, 1);
+        }
+   }
+   else
+    {
+        stream.read(buffer, type);
+        temp.append(buffer, type);
+    }
+   delete[] buffer;
+   return (temp);
+}
+
+void removeAllExample(std::string &str, const std::string &target) {
+    size_t pos;
+    while ((pos = str.find(target)) != std::string::npos) {
+        str.erase(pos, target.length());
+    }
+}
+
 void Utils::parseChunked(Clients &client, std::string &Body, int Type)
 {
-    if (!Type)
+    std::istringstream tempBody(Body);
+    std::string result;
+    std::string line;
+    size_t size = 0;
+    std::string temp;
+    
+    int i = 0;
+    line = cakmagetline(Body, tempBody, 0);
+    while (!line.empty())
     {
+        size = 0;
+        std::istringstream hexStream(line);
+        hexStream >> std::hex >> size;
+        if (size == 0)
+        {
+            size = -1;
+            break;
+        }
+        std::string temp;
+        while (temp.length() != size)
+        {
+            line = cakmagetline(Body, tempBody, size);
+            temp.append(line);
+        }
+        result.append(temp);
+        line = cakmagetline(Body, tempBody, 2);
+        line = cakmagetline(Body, tempBody, 0);
+    }
+    if (size == -1)
+    {
+        client.formData = result;
+        client.response.setContentLength(result.length());
+        client.response.setContentTypeForPost(result);
+        client.response.setIsChunked(false);
+        std::string key = client.response.getcontentType();
+        std::string target = "=";
+        size_t firstPos = key.find(target);
+        if (firstPos == std::string::npos)
+            return ;
+        std::string seperator = key.substr(firstPos + 1);
+        if (countSeperator(result, seperator) > 1)
+        {
+            size_t firstIndex = result.find(seperator, result.find(seperator) + 1);
+            if (firstIndex != std::string::npos)
+            {
+                std::string temp = result.substr(firstIndex - 2);
+                if (temp.length() == client.response.getContentLength())
+                    client.response.setContentTypeForPost(temp);
+                else
+                    client.formData.append(temp);
+            }
+        }
+        // std::cout << client.formData.length() << std::endl;
+    }
+}
+void Utils::parseChunked2(Clients &client, std::string &Body, int Type) {
+
+    if (!Type) {
         size_t headerEnd = Body.find("\r\n\r\n");
         if (headerEnd != std::string::npos)
             Body = Body.substr(headerEnd + 4);
     }
-
-    std::istringstream stream(Body);
-    std::string result;
-    std::string sizeLine;
-
-    int chunkSize = 0;
-    while (std::getline(stream, sizeLine)) {
-        if (!sizeLine.empty() && sizeLine[sizeLine.size() - 1] && sizeLine[sizeLine.size() - 1] == '\r')
-            sizeLine.erase(sizeLine.end() - 1);
-
-        std::istringstream hexStream(sizeLine);
-        hexStream >> std::hex >> chunkSize;
-        if (chunkSize == 0)
-        {
-            std::string dummy;
-            std::getline(stream, dummy);
-            chunkSize = -1;
-            break;
-        }
-        exit(1);
-        char *buffer = new char[chunkSize];
-        stream.read(buffer, chunkSize);
-        result.append(buffer, chunkSize);
-        delete[] buffer;
-
-        std::string dummy;
-        std::getline(stream, dummy);
-    }
-    if (chunkSize != -1)
-    {
+    client.formData.append(Body);
+    std::cout << client.formData.length() << std::endl;     
+    if (client.formData.find("0\r\n\r\n") == std::string::npos) {
         client.events = WAIT_FORM;
-        client.formData.append(result);
     }
-    else
-    {
-        client.formData.append(result);
-        if (client.events != WAIT_FORM)
-        client.response.setContentTypeForPost(result);
-        client.response.setIsChunked(false);
-        std::cout << client.formData.length() << std::endl;
-
-    }
-
-    std::cout << "SON DURUM " << result.length() << " SON DURUM" << std::endl;
 }
+
 
 void Utils::doubleSeperator(std::string key, std::string &buffer, Clients &client)
 {
@@ -223,7 +324,7 @@ void Utils::getBufferFormData(std::string &buffer, Clients &client)
 {
     std::string contentType = client.response.getcontentType().substr(0, client.response.getcontentType().find(";"));
     if (client.response.getIsChunked())
-        parseChunked(client, buffer, 0);
+        parseChunked2(client, buffer, 0);
     else if (!contentType.find("multipart/form-data"))
         Utils::doubleSeperator(client.response.getcontentType() , buffer, client);
     else if (!contentType.find("application/x-www-form-urlencoded"))
