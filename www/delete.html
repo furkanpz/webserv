@@ -72,16 +72,28 @@
         }
     </style>
 </head>
+<script>
+    function deleteFile() {
+        const filename = document.getElementById("_del").value;
+        fetch("/cgi-bin/delete.py", {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: "filename=" + encodeURIComponent(filename)
+        })
+        .then(res => res.text())
+        .then(html => document.body.innerHTML = html);
+    }
+    </script>
+    
 <body>
 
     <div class="container">
         <h2>Dosya Silme Sayfası</h2>
-        <form method="post" action="/cgi-bin/delete.py">
-            <label>Silmek istediğiniz dosya adı:</label><br>
-            <input type="text" name="filename" required><br><br>
-            <input type="submit" value="Dosyayı Sil">
-        </form>
-        
+        <label>Silmek istediğiniz dosya adı:</label><br>
+        <input type="text" id="_del" name="filename" required><br><br>
+        <input type="submit" onclick="deleteFile()" value="Dosyayı Sil">
         <a href="/" class="button_2">Ana Sayfaya Dön</a>
     </div>
 

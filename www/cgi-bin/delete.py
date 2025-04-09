@@ -3,12 +3,14 @@
 import cgi
 import os
 import html
-
+import sys
 UPLOAD_DIR = "./uploads"
 
 form = cgi.FieldStorage()
 
-filename = form.getfirst("filename", "").strip()
+temp = sys.stdin.read()
+
+filename = temp.split("=", 1)[1]
 filename = os.path.basename(filename)
 flag = 0
 response = """
@@ -120,7 +122,7 @@ else:
 
 if (header is None):
     header = "HTTP/1.1 405 Method Not Allowed\r\n"
-    header += "Allow: POST\r\n"
+    header += "Allow: DELETE\r\n"
 
 header += "Content-Type: text/html\r\nContent-Length: " + str(len(response)) + "\r\n\r\n"
 print(header + response)

@@ -27,7 +27,6 @@ void WebServer::CGIHandle(Clients &client)
     int fd_in[2];
     if (pipe(fd_out) == -1 || pipe(fd_in) == -1)
         return;
-
     pid_t pid = fork();
     if (pid < 0) { 
         close(fd_out[0]); close(fd_out[1]);
@@ -36,7 +35,7 @@ void WebServer::CGIHandle(Clients &client)
     }
     else if (pid == 0)
     {
-        if (client.response.getRequestType() == POST) {
+        if (client.response.getRequestType() == POST || client.response.getRequestType() == DELETE) {
             setenv("CONTENT_TYPE", client.response.getcontentType().c_str(), 1);
             setenv("CONTENT_LENGTH", Utils::intToString(client.response.getContentLength()).c_str(), 1);
         }
@@ -55,8 +54,8 @@ void WebServer::CGIHandle(Clients &client)
             char *argv[] = { (char *)"python3", (char *)scriptFile.c_str(), NULL };
             execve("/usr/bin/python3", argv, environ);
         #else
-            char *argv[] = { (char *)"python3.12", (char *)scriptFile.c_str(), NULL };
-            execve("/bin/python3.12", argv, environ);
+            char *argv[] = { (char *)"python3", (char *)scriptFile.c_str(), NULL };
+            execve("/usr/bin/python3", argv, environ);
         #endif
         std::cerr << "ERROR " << std::endl;
         exit(1);
@@ -69,7 +68,7 @@ void WebServer::CGIHandle(Clients &client)
         close(fd_out[1]); 
         close(fd_in[0]);
 
-        if (client.response.getRequestType() == POST) 
+        if (client.response.getRequestType() == POST || client.response.getRequestType() == DELETE) 
             write(fd_in[1], client.response.getContentTypeForPost().c_str(), client.response.getContentTypeForPost().size());
         
         close(fd_in[1]); 
@@ -128,8 +127,6 @@ bool WebServer::CheckResponse(Clients &client, std::string &headers)
     }
 
     Utils::parseContent(headers, client);
-    // DEBUG
-    //DEBUG
     if (client.response.getisCGI())
     {
         if (client.events == WAIT_FORM)

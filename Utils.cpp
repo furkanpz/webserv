@@ -342,12 +342,15 @@ void Utils::parseContent(std::string &buffer, Clients &client)
     if (client.events == REQUEST && client.response.getRequestType() == NONE)
     {
         response.setFile(getFileName(request));
-    // std::cout << "DEBUG: " << response.getFile() << std::endl;
+        // std::cout << "DEBUG: " << response.getFile() << std::endl;
         response.setContent(readFile(response.getFile(), response));
         response.setcontentType(get_content_type(request));
         response.setContentLength(getContentLenght(request, response));
         if (request.find("DELETE ") == 0)
-        response.setRequestType(DELETE);
+        {
+            response.setRequestType(DELETE);
+            getBufferFormData(buffer, client);
+        }
         else if(request.find("POST ") == 0)
         {
             response.setRequestType(POST);
