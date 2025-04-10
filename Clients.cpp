@@ -1,7 +1,7 @@
 #include "Clients.hpp"
 
-Clients::Clients(pollfd &newPoll, int fd) : requestType(-1), poll(&newPoll), fd(fd),
-    formData(""), events(REQUEST)
+Clients::Clients(pollfd &newPoll, int fd, int index) : requestType(-1), poll(&newPoll), fd(fd),
+    formData(""), events(REQUEST), index(index)
 {
 
 }

@@ -12,9 +12,9 @@ class Clients {
         int         fd;
         std::string formData;
         int         events;
-        Response response;
-
-        Clients(pollfd &newPoll, int);
+        Response    response;
+        int         index;
+        Clients(pollfd &newPoll, int, int);
         ~Clients();
         void client_send(int _int, const void *v, size_t s);
         int         getFd() const;

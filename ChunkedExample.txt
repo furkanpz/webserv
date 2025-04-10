@@ -1,8 +1,0 @@
-13\r\n
-name=test1&surname\r\n
-13\r\n
-=test2&age=test3&n\r\n
-1a\r\n
-ickname=test4\r\n
-0\r\n
-\r\n

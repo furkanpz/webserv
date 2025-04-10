@@ -7,6 +7,8 @@
 
 class Utils
 {
+    private:
+        static void ChunkedCompleted(Clients &client, std::string &result);
     public:
         static std::string intToString(int num);
         static std::string readFile(const std::string& fileName, Response &response, int code = OK);
@@ -14,12 +16,10 @@ class Utils
         static std::string getFileName(std::string request);
         static size_t getContentLenght(std::string request, Response &response);
         static void doubleSeperator(std::string key, std::string &buffer, Clients &client);
-        static void getFormData(Response &response, Clients &client);
         static int countSeperator(const std::string &buffer, const std::string &target);
-        static void directlyFormData(std::string body, Response &response, int eventFd);
         static void print_response(Response &response);
         static void getBufferFormData(std::string &buffer, Clients &client);
         static bool isDirectory(const std::string& path);
         static void parseChunked(Clients &client, std::string &Body, int Type);
-        static void parseChunked2(Clients &client, std::string &Body, int Type);
+        static void parseChunked_FT(Clients &client, std::string &Body, int Type);
 };

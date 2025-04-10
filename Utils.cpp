@@ -104,33 +104,6 @@ size_t Utils::getContentLenght(std::string request, Response &response)
     return (contentLength);
 }
 
-void Utils::directlyFormData(std::string body, Response &response, int eventFd)
-{
-    char buffer[10240];
-    int bytesRead = recv(eventFd, buffer, sizeof(buffer), 0);
-    if (bytesRead > 0) {
-        body.append(buffer, bytesRead);
-    }
-    response.setContentTypeForPost(body);
-}
-
-void Utils::getFormData(Response &response, Clients &client)
-{
-    int contentLength = response.getContentLength();
-    int bytesRead;
-    char buffer[10240] = {0};
-    std::string body;
-    while (body.length() < (size_t)contentLength) {
-        bytesRead = recv(client.fd, buffer, sizeof(buffer) - 1, 0);;
-        if (bytesRead > 0)
-            body.append(buffer, bytesRead);
-        else
-            break;
-    }
-    client.formData.append(body);
-}
-
-
 int Utils::countSeperator(const std::string &buffer, const std::string &target) {
     int count = 0;
     size_t pos = buffer.find(target);
@@ -196,7 +169,7 @@ int Utils::countSeperator(const std::string &buffer, const std::string &target) 
 
 // }
 
-std::string cakmagetline(std::string& ver, std::istringstream &stream, int type)
+std::string chunkedgetline(std::string& ver, std::istringstream &stream, int type)
 {
    std::string temp;
 
@@ -218,10 +191,30 @@ std::string cakmagetline(std::string& ver, std::istringstream &stream, int type)
    return (temp);
 }
 
-void removeAllExample(std::string &str, const std::string &target) {
-    size_t pos;
-    while ((pos = str.find(target)) != std::string::npos) {
-        str.erase(pos, target.length());
+void Utils::ChunkedCompleted(Clients &client, std::string &result)
+{
+    std::string key = client.response.getcontentType();
+    size_t firstPos = key.find("=");
+
+    client.formData = result;
+    client.response.setContentLength(result.length());
+    client.response.setContentTypeForPost(result);
+    client.response.setIsChunked(false);
+    if (firstPos == std::string::npos)
+        return ;
+
+    std::string seperator = key.substr(firstPos + 1);
+    if (countSeperator(result, seperator) > 1)
+    {
+        size_t firstIndex = result.find(seperator, result.find(seperator) + 1);
+        if (firstIndex != std::string::npos)
+        {
+            std::string temp = result.substr(firstIndex - 2);
+            if (temp.length() == client.response.getContentLength())
+                client.response.setContentTypeForPost(temp);
+            else
+                client.formData.append(temp);
+        }
     }
 }
 
@@ -234,7 +227,7 @@ void Utils::parseChunked(Clients &client, std::string &Body, int Type)
     std::string temp;
     
     int i = 0;
-    line = cakmagetline(Body, tempBody, 0);
+    line = chunkedgetline(Body, tempBody, 0);
     while (!line.empty())
     {
         size = 0;
@@ -248,49 +241,24 @@ void Utils::parseChunked(Clients &client, std::string &Body, int Type)
         std::string temp;
         while (temp.length() != size)
         {
-            line = cakmagetline(Body, tempBody, size);
+            line = chunkedgetline(Body, tempBody, size);
             temp.append(line);
         }
         result.append(temp);
-        line = cakmagetline(Body, tempBody, 2);
-        line = cakmagetline(Body, tempBody, 0);
+        line = chunkedgetline(Body, tempBody, 2);
+        line = chunkedgetline(Body, tempBody, 0);
     }
     if (size == -1)
-    {
-        client.formData = result;
-        client.response.setContentLength(result.length());
-        client.response.setContentTypeForPost(result);
-        client.response.setIsChunked(false);
-        std::string key = client.response.getcontentType();
-        std::string target = "=";
-        size_t firstPos = key.find(target);
-        if (firstPos == std::string::npos)
-            return ;
-        std::string seperator = key.substr(firstPos + 1);
-        if (countSeperator(result, seperator) > 1)
-        {
-            size_t firstIndex = result.find(seperator, result.find(seperator) + 1);
-            if (firstIndex != std::string::npos)
-            {
-                std::string temp = result.substr(firstIndex - 2);
-                if (temp.length() == client.response.getContentLength())
-                    client.response.setContentTypeForPost(temp);
-                else
-                    client.formData.append(temp);
-            }
-        }
-        // std::cout << client.formData.length() << std::endl;
-    }
+        ChunkedCompleted(client, result);
 }
-void Utils::parseChunked2(Clients &client, std::string &Body, int Type) {
+void Utils::parseChunked_FT(Clients &client, std::string &Body, int Type) {
 
     if (!Type) {
         size_t headerEnd = Body.find("\r\n\r\n");
         if (headerEnd != std::string::npos)
             Body = Body.substr(headerEnd + 4);
     }
-    client.formData.append(Body);
-    std::cout << client.formData.length() << std::endl;     
+    client.formData.append(Body); 
     if (client.formData.find("0\r\n\r\n") == std::string::npos) {
         client.events = WAIT_FORM;
     }
@@ -324,7 +292,7 @@ void Utils::getBufferFormData(std::string &buffer, Clients &client)
 {
     std::string contentType = client.response.getcontentType().substr(0, client.response.getcontentType().find(";"));
     if (client.response.getIsChunked())
-        parseChunked2(client, buffer, 0);
+        parseChunked_FT(client, buffer, 0);
     else if (!contentType.find("multipart/form-data"))
         Utils::doubleSeperator(client.response.getcontentType() , buffer, client);
     else if (!contentType.find("application/x-www-form-urlencoded"))
@@ -342,7 +310,6 @@ void Utils::parseContent(std::string &buffer, Clients &client)
     if (client.events == REQUEST && client.response.getRequestType() == NONE)
     {
         response.setFile(getFileName(request));
-        // std::cout << "DEBUG: " << response.getFile() << std::endl;
         response.setContent(readFile(response.getFile(), response));
         response.setcontentType(get_content_type(request));
         response.setContentLength(getContentLenght(request, response));

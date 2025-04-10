@@ -90,7 +90,7 @@ if filename:
         os.remove(path)
         response += f"""
         <div class="message success">
-            <p><strong>Success!</strong><em>{filename}</em> başarıyla silindi.</p>
+            <p><strong>Success! </strong><em>{filename}</em> başarıyla silindi.</p>
         </div>
         """
         flag = 1

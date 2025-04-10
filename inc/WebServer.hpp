@@ -2,6 +2,7 @@
 
 #include "webserv.hpp"
 #include "Clients.hpp"
+#include <cerrno>
 
 class Response;
 

@@ -125,14 +125,11 @@ bool WebServer::CheckResponse(Clients &client, std::string &headers)
         std::string continueResponse = "HTTP/1.1 100 Continue\r\n\r\n";
         send(client.fd, continueResponse.c_str(), continueResponse.size(), 0);
     }
-
     Utils::parseContent(headers, client);
     if (client.response.getisCGI())
     {
         if (client.events == WAIT_FORM)
-        {
             return true;
-        }
         else
             return CGIHandle(client), true;
     }
@@ -149,10 +146,20 @@ void WebServer::ServerResponse(Clients &client)
     contentLength = 0;
     if (client.events == REQUEST)
     {
-        while ((bytesRead = recv(client.fd, buffer, sizeof(buffer) - 1, 0)) > 0) {
-            headers.append(buffer, bytesRead);
-            if (headers.find("\r\n\r\n") != std::string::npos)
+        while (true) {
+            bytesRead = recv(client.fd, buffer, sizeof(buffer) - 1, 0);
+            if (bytesRead > 0)
+            {
+                headers.append(buffer, bytesRead);
+                if (headers.find("\r\n\r\n") != std::string::npos)
+                    break;
+            }
+            else
+            {
+                if (bytesRead == -1)
+                    return closeClient(client.index);
                 break;
+            }
         }
     }
     if (CheckResponse(client, headers))
@@ -167,10 +174,9 @@ void WebServer::ServerResponse(Clients &client)
 void WebServer::addClient(int fd, short events)
 {
     pollfd clientPollFd = {fd, events, 0};
-    Clients newClient(clientPollFd, fd);
+    Clients newClient(clientPollFd, fd, (int)clients.size());
     pollFds.push_back(clientPollFd);
     clients.push_back(newClient);
-
 }
 
 void WebServer::closeClient(int index)
@@ -189,14 +195,14 @@ void WebServer::readFormData(int i)
         int bytesRead = recv(clients[i].fd, buffer, sizeof(buffer), 0);
         if (bytesRead > 0) {
             clients[i].formData.append(buffer, bytesRead);
-            if (tempChunk)
-            {
-                if (clients[i].formData.find("0\r\n\r\n") != std::string::npos) {
-                    Utils::parseChunked(clients[i], clients[i].formData, 1);
-                    }
-            }
+            if (tempChunk && clients[i].formData.find("0\r\n\r\n") != std::string::npos)
+                    Utils::parseChunked(clients[i], clients[i].formData, 1); 
         }
-        else break;
+        else {
+            if (bytesRead == -1)
+                return closeClient(i);
+            break;
+        }
     }
     if (clients[i].response.getContentLength() == clients[i].formData.size()
         || tempChunk != clients[i].response.getIsChunked())
@@ -226,9 +232,9 @@ void WebServer::start() {
             throw ServerExcp("Poll Error");
         }
         for (size_t i = 0; i < pollFds.size(); i++) {
-            if (i == 0 && (pollFds[i].revents && POLLIN) && new_connection() < 0)
+            if (i == 0 && (pollFds[i].revents & POLLIN) && new_connection() < 0)
                 continue;
-            else
+            else if (i > 0)
             {
                 if (pollFds[i].revents & POLLIN)
                 {
