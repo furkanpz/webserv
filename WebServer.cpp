@@ -155,11 +155,8 @@ void WebServer::ServerResponse(Clients &client)
                     break;
             }
             else
-            {
-                if (bytesRead == -1)
-                    return closeClient(client.index);
                 break;
-            }
+
         }
     }
     if (CheckResponse(client, headers))
@@ -198,11 +195,8 @@ void WebServer::readFormData(int i)
             if (tempChunk && clients[i].formData.find("0\r\n\r\n") != std::string::npos)
                     Utils::parseChunked(clients[i], clients[i].formData, 1); 
         }
-        else {
-            if (bytesRead == -1)
-                return closeClient(i);
+        else 
             break;
-        }
     }
     if (clients[i].response.getContentLength() == clients[i].formData.size()
         || tempChunk != clients[i].response.getIsChunked())
