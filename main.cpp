@@ -1,5 +1,6 @@
 #include "webserv.hpp"
 #include "WebServer.hpp"
+#include "config.hpp"
 
 WebServer *g_server = NULL;
 
@@ -12,10 +13,14 @@ void ServerKill(int sig) {
 
 int main(int ac, char **av)
 {
-    if (ac == 1)
+    if (ac == 2)
     {
-        (void)av; // wall werror wextra sussun diye koydum şimdilik
         try {
+            std::vector<Server> servers = parse_config(av[1]);
+            for (std::vector<Server>::size_type i = 0; i < servers.size(); i++)
+            {
+                
+            }
             WebServer *serv  = new WebServer("127.0.0.1", 4443);
             g_server = serv;
             signal(SIGINT, ServerKill);
