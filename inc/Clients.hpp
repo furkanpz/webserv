@@ -14,7 +14,10 @@ class Clients {
         int         events;
         Response    response;
         int         index;
-        Clients(pollfd &newPoll, int, int);
+        unsigned long maxBodySize;
+        Server server;
+
+        Clients(pollfd &newPoll, int, int, unsigned long, Server &);
         ~Clients();
         void client_send(int _int, const void *v, size_t s);
         int         getFd() const;

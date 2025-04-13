@@ -86,8 +86,8 @@ void WebServer::CGIHandle(Clients &client)
     }
 }
 
-WebServer::WebServer(const std::string &host, int port) : Host(host), Port(port) {
-    serverFd = SocketCreator(host);
+WebServer::WebServer(Server &server) : Host(server.host), Port(server.port), server(server){
+    serverFd = SocketCreator(Host);
     if (serverFd == 0) {freeaddrinfo(res); close(serverFd); throw ServerExcp("Socket Error");}
     int opt = 1;
     if (setsockopt(serverFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
@@ -161,8 +161,9 @@ void WebServer::ServerResponse(Clients &client)
     }
     if (CheckResponse(client, headers))
         return;
-    std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + 
-                        Utils::intToString(client.response.getContent().length()) + "\r\n\r\n" + client.response.getContent();
+
+
+    std::string response  = Utils::returnResponseHeader(client);
     Utils::print_response(client.response);
     client.client_send(client.fd, response.c_str(), response.size());
 }
@@ -171,7 +172,7 @@ void WebServer::ServerResponse(Clients &client)
 void WebServer::addClient(int fd, short events)
 {
     pollfd clientPollFd = {fd, events, 0};
-    Clients newClient(clientPollFd, fd, (int)clients.size());
+    Clients newClient(clientPollFd, fd, (int)clients.size(), this->server.client_max_body_size, this->server);
     pollFds.push_back(clientPollFd);
     clients.push_back(newClient);
 }
@@ -193,13 +194,14 @@ void WebServer::readFormData(int i)
         if (bytesRead > 0) {
             clients[i].formData.append(buffer, bytesRead);
             if (tempChunk && clients[i].formData.find("0\r\n\r\n") != std::string::npos)
-                    Utils::parseChunked(clients[i], clients[i].formData, 1); 
+                Utils::parseChunked(clients[i], clients[i].formData, 1); 
         }
         else 
             break;
     }
-    if (clients[i].response.getContentLength() == clients[i].formData.size()
+    if ((clients[i].response.getContentLength() == clients[i].formData.size()
         || tempChunk != clients[i].response.getIsChunked())
+        && clients[i].response.getResponseCode() != 413)
     {
         clients[i].response.setContentTypeForPost(clients[i].formData);
         if (clients[i].response.getisCGI())
@@ -233,7 +235,16 @@ void WebServer::start() {
                 if (pollFds[i].revents & POLLIN)
                 {
                     if (clients[i].events == WAIT_FORM)
+                    {
                         readFormData(i);
+                        if (clients[i].response.getResponseCode() == 413)
+                        {
+                            clients[i].response.setContent("413 Request Entity Too Large");
+                            std::string response = Utils::returnResponseHeader(clients[i]);
+                            clients[i].client_send(clients[i].fd, response.c_str(), response.size());
+                            continue;
+                        }
+                    }
                     ServerResponse(clients[i]);
                 }
                 if (pollFds[i].revents & POLLOUT)

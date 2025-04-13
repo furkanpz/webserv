@@ -19,6 +19,7 @@
 #include <iostream>
 #include <vector>
 #include <iomanip>
+#include "config.hpp"
 
 
 static const std::string methods[3] = {"GET", "POST", "DELETE"};

@@ -1,6 +1,5 @@
 #include "webserv.hpp"
 #include "WebServer.hpp"
-#include "config.hpp"
 
 WebServer *g_server = NULL;
 
@@ -17,11 +16,13 @@ int main(int ac, char **av)
     {
         try {
             std::vector<Server> servers = parse_config(av[1]);
-            for (std::vector<Server>::size_type i = 0; i < servers.size(); i++)
+            // print_servers(servers);
+            if (servers.size() == 0)
             {
-                
+                std::cerr << "No server found in the configuration file." << std::endl;
+                return (1);
             }
-            WebServer *serv  = new WebServer("127.0.0.1", 4443);
+            WebServer *serv  = new WebServer(servers[0]);
             g_server = serv;
             signal(SIGINT, ServerKill);
             signal(SIGPIPE, SIG_IGN);

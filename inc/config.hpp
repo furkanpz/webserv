@@ -31,5 +31,6 @@ struct Server {
 };
 bool is_valid_ip(const std::string& ip);
 std::vector<Server> parse_config(const std::string& filename);
+void print_servers(const std::vector<Server>& servers);
 
 #endif

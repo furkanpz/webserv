@@ -33,7 +33,7 @@ std::vector<Server> parse_config(const std::string& filename)
             current_server = Server();
             current_server.port = -1;
             current_server.host = "";
-            current_server.client_max_body_size = 0;
+            current_server.client_max_body_size = 1 * 1024 * 1024;
             continue;
         }
         std::string block_end = "}";
@@ -304,4 +304,47 @@ bool is_valid_ip(const std::string& ip)
         ++count;
     }
     return count == 4;
+}
+
+void print_servers(const std::vector<Server>& servers) {
+    for (size_t i = 0; i < servers.size(); ++i) {
+        const Server& server = servers[i];
+        std::cout << "Server " << i + 1 << ":\n";
+        std::cout << "  Host: " << server.host << "\n";
+        std::cout << "  Port: " << server.port << "\n";
+        std::cout << "  Server Names: ";
+        for (size_t j = 0; j < server.server_names.size(); ++j) {
+            std::cout << server.server_names[j];
+            if (j != server.server_names.size() - 1)
+                std::cout << ", ";
+        }
+        std::cout << "\n";
+        std::cout << "  Client Max Body Size: " << server.client_max_body_size << "\n";
+        std::cout << "  Error Pages:\n";
+        for (std::map<int, std::string>::const_iterator it = server.error_pages.begin(); it != server.error_pages.end(); ++it) {
+            std::cout << "    " << it->first << " => " << it->second << "\n";
+        }
+        std::cout << "  Locations:\n";
+        for (size_t j = 0; j < server.locations.size(); ++j) {
+            const Location& loc = server.locations[j];
+            std::cout << "    Location " << j + 1 << ":\n";
+            std::cout << "      Path: " << loc.path << "\n";
+            std::cout << "      Root: " << loc.root << "\n";
+            std::cout << "      Methods: ";
+            for (size_t k = 0; k < loc.methods.size(); ++k) {
+                std::cout << loc.methods[k];
+                if (k != loc.methods.size() - 1)
+                    std::cout << ", ";
+            }
+            std::cout << "\n";
+            std::cout << "      Autoindex: " << (loc.autoindex ? "on" : "off") << "\n";
+            std::cout << "      Index: " << loc.index << "\n";
+            std::cout << "      Redirect: " << loc.redirect << "\n";
+            std::cout << "      CGI Extension: " << loc.cgi_extension << "\n";
+            std::cout << "      CGI Path: " << loc.cgi_path << "\n";
+            std::cout << "      Upload Root: " << loc.upload_root << "\n";
+            std::cout << "      Upload Limit: " << loc.upload_limit << "\n";
+        }
+        std::cout << "\n";
+    }
 }

@@ -2,6 +2,7 @@
 
 #include "webserv.hpp"
 
+
 class Response{
     private:
         std::string contentTypeForPost;
@@ -13,6 +14,8 @@ class Response{
         size_t ContentLenght;
         std::string contentType;
         bool isChunked;
+        std::string responseCodestr;
+
     public:
         Response();
 
@@ -33,7 +36,7 @@ class Response{
         void setContent(std::string _content);
 
         std::string getFile(void) const;
-        void setFile(std::string _file);
+        void setFile(std::string _file, Server &server);
 
         bool getisCGI(void) const;
         void setisCGI(bool _tf);
@@ -43,4 +46,6 @@ class Response{
 
         std::string getContentTypeForPost(void) const;
         void setContentTypeForPost(std::string _contentTypeForPost);
+
+        std::string getResponseCodestr(void) const;
     };

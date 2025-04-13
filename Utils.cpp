@@ -20,6 +20,17 @@ std::string returnNotFound(Response &response)
     return "";
 }
 
+std::string Utils::returnResponseHeader(Clients &client) {
+    std::string header = "HTTP/1.1 ";
+    header += client.response.getResponseCodestr() + "\r\n";
+    header += "Content-Type: text/html\r\n";
+    header += "Connection: keep-alive\r\n";
+    header += "Content-Length: " + Utils::intToString(client.response.getContent().length()) + "\r\n";
+    header += "\r\n";
+    header += client.response.getContent();
+    return header;
+}
+
 std::string Utils::readFile(const std::string &fileName, Response &response, int code)
 {
     if (isDirectory(fileName))
@@ -99,7 +110,7 @@ size_t Utils::getContentLenght(std::string request, Response &response)
     if (request.find("Transfer-Encoding: chunked") != std::string::npos)
     {
         response.setIsChunked(true);
-        contentLength = -1;
+        contentLength = 0;
     }
     return (contentLength);
 }
@@ -114,60 +125,6 @@ int Utils::countSeperator(const std::string &buffer, const std::string &target) 
     }
     return count;
 }
-
-// void Utils::parseChunked(Clients &client, std::string &Body, int Type)
-// {
-//     if (!Type)
-//     {
-//         size_t headerEnd = Body.find("\r\n\r\n");
-//         if (headerEnd != std::string::npos)
-//             Body = Body.substr(headerEnd + 4);
-//     }
-
-//     std::istringstream stream(Body);
-//     std::string result;
-//     std::string sizeLine;
-//     std::string temp;
-
-//     std::getline(stream, sizeLine);
-//     int chunkSize = 0;
-//     while (!sizeLine.empty()) {
-//         // if (!sizeLine.empty() && sizeLine[sizeLine.size() - 1] && sizeLine[sizeLine.size() - 1] == '\r')
-//         //     sizeLine.erase(sizeLine.end() - 1);
-//         std::istringstream hexStream(sizeLine);
-//         hexStream >> std::hex >> chunkSize;
-//         if (chunkSize == 0)
-//         {
-//             // std::string dummy;
-//             // std::getline(stream, dummy);
-//             chunkSize = -1;
-//             break;
-//         }
-//         std::cout << "SON DURUM " << chunkSize << " SON DURUM" << std::endl;
-//         exit(1);
-//         char *buffer = new char[chunkSize];
-//         stream.read(buffer, chunkSize);
-//         temp.append(buffer, chunkSize);
-//         if (temp.length() == chunkSize)
-//             std::getline(stream, sizeLine);
-//         delete[] buffer;
-//     }
-//     if (chunkSize != -1)
-//     {
-//         client.events = WAIT_FORM;
-//         client.formData.append(result);
-//     }
-//     else
-//     {
-//         client.formData.append(result);
-//         if (client.events != WAIT_FORM)
-//         client.response.setContentTypeForPost(result);
-//         client.response.setIsChunked(false);
-//         std::cout << client.formData.length() << std::endl;
-
-//     }
-
-// }
 
 std::string chunkedgetline(std::string& ver, std::istringstream &stream, int type)
 {
@@ -248,8 +205,17 @@ void Utils::parseChunked(Clients &client, std::string &Body, int Type)
         line = chunkedgetline(Body, tempBody, 2);
         line = chunkedgetline(Body, tempBody, 0);
     }
+    
     if (size == -1)
+    {
+        if (result.length() > client.maxBodySize)
+        {
+            client.response.setResponseCode(413);
+            client.response.setContent("413 Request Entity Too Large");
+            return ;
+        }
         ChunkedCompleted(client, result);
+    }
 }
 void Utils::parseChunked_FT(Clients &client, std::string &Body, int Type) {
 
@@ -258,7 +224,7 @@ void Utils::parseChunked_FT(Clients &client, std::string &Body, int Type) {
         if (headerEnd != std::string::npos)
             Body = Body.substr(headerEnd + 4);
     }
-    client.formData.append(Body); 
+    client.formData.append(Body);
     if (client.formData.find("0\r\n\r\n") == std::string::npos) {
         client.events = WAIT_FORM;
     }
@@ -309,10 +275,17 @@ void Utils::parseContent(std::string &buffer, Clients &client)
     
     if (client.events == REQUEST && client.response.getRequestType() == NONE)
     {
-        response.setFile(getFileName(request));
-        response.setContent(readFile(response.getFile(), response));
+        response.setFile(getFileName(request, client), client.server);
         response.setcontentType(get_content_type(request));
         response.setContentLength(getContentLenght(request, response));
+        if (response.getContentLength() > client.maxBodySize)
+        {
+            response.setResponseCode(413);
+            response.setContent("413 Request Entity Too Large");
+            return ;
+        }
+        response.setContent(readFile(response.getFile(), response));
+        
         if (request.find("DELETE ") == 0)
         {
             response.setRequestType(DELETE);
@@ -339,8 +312,9 @@ bool Utils::isDirectory(const std::string& path) {
     return false;
 }
 
-std::string Utils::getFileName(std::string request)
+std::string Utils::getFileName(std::string request, Clients &client)
 {
+
     size_t pos = request.find(" ");
     if (pos == std::string::npos) {
         return "";
@@ -354,13 +328,11 @@ std::string Utils::getFileName(std::string request)
 
     std::string path = request.substr(start, end - start);
     if (path == "/")
-    return HOME_DIR + std::string("index.html");
+        return path;
     
-    if (path[0] == '/')
-        path = path.substr(1);
     if (isDirectory(path))
         return path;
-    return HOME_DIR + path;
+    return  path;
 }
 
 void Utils::print_response(Response &response)
@@ -370,4 +342,16 @@ void Utils::print_response(Response &response)
     std::string meth("[" + methods[MAX_INT - response.getRequestType()] + "]");
     std::cout << meth << std::setw(3)
                << " /" << response.getFile() << " " << response.getResponseCode() << std::endl;
+}
+
+std::vector<std::string> Utils::split(const std::string& s, char delimiter) {
+    std::vector<std::string> tokens;
+    std::string token;
+    std::istringstream tokenStream(s);
+    
+    while (std::getline(tokenStream, token, delimiter)) {
+        tokens.push_back(token);
+    }
+    
+    return tokens;
 }

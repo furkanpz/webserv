@@ -1,6 +1,6 @@
 NAME = webserv
 
-SRCS = main.cpp WebServer.cpp Utils.cpp Response.cpp Clients.cpp
+SRCS = main.cpp WebServer.cpp Utils.cpp Response.cpp Clients.cpp config.cpp
 
 CC = c++
 RM = rm -rf

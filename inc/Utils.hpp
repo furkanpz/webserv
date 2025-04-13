@@ -13,7 +13,7 @@ class Utils
         static std::string intToString(int num);
         static std::string readFile(const std::string& fileName, Response &response, int code = OK);
         static void parseContent(std::string &buffer, Clients &client);
-        static std::string getFileName(std::string request);
+        static std::string getFileName(std::string request, Clients &client);
         static size_t getContentLenght(std::string request, Response &response);
         static void doubleSeperator(std::string key, std::string &buffer, Clients &client);
         static int countSeperator(const std::string &buffer, const std::string &target);
@@ -22,4 +22,6 @@ class Utils
         static bool isDirectory(const std::string& path);
         static void parseChunked(Clients &client, std::string &Body, int Type);
         static void parseChunked_FT(Clients &client, std::string &Body, int Type);
+        static std::string returnResponseHeader(Clients &client);
+        static std::vector<std::string> split(const std::string &s, char delimiter);
 };

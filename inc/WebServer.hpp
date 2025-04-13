@@ -14,7 +14,7 @@ class WebServer {
         std::vector<pollfd> pollFds;
         std::vector<Clients> clients;
         struct addrinfo first, *res;
-
+        Server server;
     private:
         void ServerResponse(Clients &);
         void setNonBlocking(int fd);
@@ -32,7 +32,7 @@ class WebServer {
         void start();
     
     public:
-        WebServer(const std::string &host, int port);
+        WebServer(Server &server);
         ~WebServer();
 
         class ServerExcp : public std::exception {
