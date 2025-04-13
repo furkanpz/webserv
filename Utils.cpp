@@ -341,7 +341,7 @@ void Utils::print_response(Response &response)
         return ;
     std::string meth("[" + methods[MAX_INT - response.getRequestType()] + "]");
     std::cout << meth << std::setw(3)
-               << " /" << response.getFile() << " " << response.getResponseCode() << std::endl;
+               << " " << response.getFile() << " " << response.getResponseCode() << std::endl;
 }
 
 std::vector<std::string> Utils::split(const std::string& s, char delimiter) {
@@ -350,6 +350,8 @@ std::vector<std::string> Utils::split(const std::string& s, char delimiter) {
     std::istringstream tokenStream(s);
     
     while (std::getline(tokenStream, token, delimiter)) {
+        if (token.empty())
+            continue;
         tokens.push_back(token);
     }
     

@@ -55,66 +55,65 @@ void Response::setFile(std::string _file, Server &server)
         file = _file;
         return;
     }
-    int start = 0;
-    bool flag_matched = false;
-    int matched = -1;
-    int root_index = -1;
-    std::vector<std::string> parts = Utils::split(_file, '/');
-    if (parts[0].empty()) // istegin basinda / var demektir;
-        parts.erase(parts.begin());
-    std::string united;
-    std::vector<std::string> united_parts;
-    while (start < parts.size())
+
+    int                         matchValues[4] = {false, -1, -1, -1};
+    std::vector<std::string>    parts = Utils::split(_file, '/');
+    int                         size[3] = {(int)parts.size(), 0, 0};
+    std::vector<std::string>    united_parts;
+    std::string                 united;
+
+    for (int i = 0; i < size[0]; i++)
     {
-        united += "/";
-        united += parts[start];
+        united += "/" + parts[i];
         united_parts.push_back(united);
-        start++;
     }
-    for (int i = 0; i < server.locations.size(); i++)
+    if (size[0] == 0)
+        united_parts.push_back("/");
+    size[1] = (int)united_parts.size(); size[2] = server.locations.size();
+    for (int i = size[1] - 1; i >= 0; i--)
     {
-        if (server.locations[i].path == united)
+        if (!matchValues[0])
         {
-            flag_matched = true;
-            matched = i;
-        }
-        if (server.locations[i].path == "/")
-        {
-            root_index = i;
-        }
-    }
-    std::string ret;
-    if (flag_matched)
-    {
-        ret = "/" + server.locations[matched].path + parts[parts.size() - 1];
-    }
-    else
-    {
-        int decrease = 0;
-        int partsize = parts.size();
-        std::cout << partsize << std::endl;
-        for (int i = 0; i < united_parts.size(); i++)
-        {
-            for (int d = 0; d < server.locations.size(); d++)
+            for (int d = 0; d < size[2]; d++)
             {
+                if (matchValues[1] == -1 && !server.locations[d].path.compare("/"))
+                    matchValues[1] = d;
                 if (!server.locations[d].path.compare(united_parts[i]))
                 {
-                    flag_matched = true;
-                    matched = d;
+                    matchValues[0] = true; matchValues[2] = d; matchValues[3] = i;
                     break;
                 }
             }
-            if (flag_matched)
-            {
-                ret = "/" + server.locations[matched].root + "/" + parts[parts.size() - 1];
-                break;
-            }
+        }
+        if (matchValues[0])
+        {
+            // if (server.locations[matchValues[2]].root.empty())
+            //     file = "/" + parts[parts.size() - 1]; // not found dönmeli veya parent root alınmalı!
+            file += server.locations[matchValues[2]].root;
+            break;
         }
     }
-    if (!flag_matched)
-      ret = "/" + server.locations[root_index].root + parts[parts.size() - 1];
-    std::cout << ret << std::endl;
-    file = ret;
+    if (!matchValues[0])
+    {
+        if (matchValues[1] == -1)
+        {
+            for (int i = 0; i < size[2]; i++)
+            {
+                if (!server.locations[i].path.compare("/"))
+                {
+                    file = server.locations[i].root; break;
+                }
+            }
+        }
+        else
+            file = server.locations[matchValues[1]].root;
+        if (matchValues[1] == -1)
+            file = "";
+    }   
+
+    for (int i = matchValues[3] + 1; i < size[0]; i++)
+        file += "/" + parts[i];
+    std::cout << "File: " << file << std::endl;
 }
 
 bool Response::getisCGI(void) const
