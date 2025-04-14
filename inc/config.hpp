@@ -32,6 +32,7 @@ struct Server {
 	std::string cgi_extensioninserver;
     std::string cgi_pathinserver;
     std::vector<Location> locations;
+	Server() : client_max_body_size(1024 * 1024), port(0){}
 };
 bool is_valid_ip(const std::string& ip);
 std::vector<Server> parse_config(const std::string& filename);

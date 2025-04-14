@@ -7,15 +7,19 @@ class Response{
     private:
         std::string contentTypeForPost;
         std::string file;
+        std::string pureLink;
         int requestType;
         int responseCode;
         std::string content;
         bool isCGI;
+        std::string cgiPath;
+        std::string cgiExtension;
         size_t ContentLenght;
         std::string contentType;
         bool isChunked;
         std::string responseCodestr;
-
+        bool methodNotAllowed;
+        
     public:
         Response();
 
@@ -25,6 +29,8 @@ class Response{
         std::string getcontentType(void) const;
         void setcontentType(std::string _type);
 
+        bool getMethodNotAllowed(void) const;
+        void setMethodNotAllowed(bool _tf);
 
         size_t getContentLength(void) const;
         void setContentLength(size_t _Lenght);
@@ -48,4 +54,13 @@ class Response{
         void setContentTypeForPost(std::string _contentTypeForPost);
 
         std::string getResponseCodestr(void) const;
+
+        std::string getCgiPath(void) const;
+        void setCgiPath(std::string _cgiPath);
+
+        std::string getCgiExtension(void) const;
+        void setCgiExtension(std::string _cgiExtension);
+
+        std::string getPureLink(void) const;
+        void setPureLink(std::string _pureLink);
     };

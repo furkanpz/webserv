@@ -9,7 +9,7 @@ std::vector<Server> parse_config(const std::string& filename)
     bool in_server_block = false;
     bool in_location_block = false;
     std::ifstream file(filename.c_str());
-    std::string line;
+    std::string tab_line;
     int line_number = 0;
 
     if (!file.is_open())
@@ -18,9 +18,10 @@ std::vector<Server> parse_config(const std::string& filename)
         return servers;
     }
 
-    while (std::getline(file, line))
+    while (std::getline(file, tab_line))
 	{
         line_number++;
+		std::string line = Utils::Spacetrim(tab_line);
         if (line.empty())
             continue;
         std::string server_start = "server {";
@@ -54,7 +55,15 @@ std::vector<Server> parse_config(const std::string& filename)
             current_location = Location();
             std::string::size_type path_start = line.find("/");
             std::string::size_type path_end = line.find("{");
-            if (path_start == std::string::npos || path_end == std::string::npos)
+
+			if (path_end != std::string::npos && path_end < line.length() - 1 && line[path_end + 1] == '}')
+    		{
+    		    std::cerr << "nginx: [emerg] unexpected \"}\" in " << filename << ":" << line_number << std::endl;
+    		    file.close();
+    		    servers.clear();
+    		    return servers;
+    		}
+        	if (path_start == std::string::npos || path_end == std::string::npos)
 			{
                 std::cerr << "nginx: [emerg] invalid location syntax in " << filename << ":" << line_number << std::endl;
                 file.close();
@@ -144,20 +153,64 @@ std::vector<Server> parse_config(const std::string& filename)
                     current_server.server_names.push_back(name);
                 }
             }
-            else if (key == "client_max_body_size")
-			{
-                std::string size;
-                ss >> size;
-                size = size.substr(0, size.find("M"));
-                current_server.client_max_body_size = std::atoi(size.c_str()) * 1024 * 1024;
-                if (current_server.client_max_body_size <= 0)
+			else if (key == "client_max_body_size") {
+			    std::string size;
+			    ss >> std::ws;
+			    std::getline(ss, size, ';');
+			    size_t size_first = size.find_first_not_of(" \t");
+			    size_t size_last = size.find_last_not_of(" \t");
+
+			    if (size_first != std::string::npos && size_last != std::string::npos)
+			        size = size.substr(size_first, size_last - size_first + 1);
+				else
+			        size.clear();
+			    if (size.empty())
 				{
-                    std::cerr << "nginx: [emerg] invalid value \"" << size << "M\" in \"client_max_body_size\" directive in " << filename << ":" << line_number << std::endl;
-                    file.close();
-                    servers.clear();
-                    return servers;
-                }
-            }
+			        std::cerr << "nginx: [emerg] invalid value \"\" in \"client_max_body_size\" directive in "
+			                  << filename << ":" << line_number << std::endl;
+			        file.close();
+			        servers.clear();
+			        return servers;
+			    }
+
+			    unsigned long value = 0;
+			    char* endptr = 0;
+			    std::string original_size = size;
+			    char last = size[size.length() - 1];
+
+			    if (last == 'M' || last == 'm')
+				{
+			        size.erase(size.length() - 1);
+			        value = std::strtoul(size.c_str(), &endptr, 10);
+			        if (endptr != size.c_str() && *endptr == '\0' && value > 0)
+			            value *= 1024 * 1024;
+			    }
+			    else if (last == 'K' || last == 'k')
+				{
+			        size.erase(size.length() - 1);
+			        value = std::strtoul(size.c_str(), &endptr, 10);
+			        if (endptr != size.c_str() && *endptr == '\0' && value > 0)
+			            value *= 1024;
+			    }
+			    else if (last == 'G' || last == 'g')
+				{
+			        size.erase(size.length() - 1);
+			        value = std::strtoul(size.c_str(), &endptr, 10);
+			        if (endptr != size.c_str() && *endptr == '\0' && value > 0)
+			            value *= 1024 * 1024 * 1024;
+			    }
+			    else
+			        value = std::strtoul(size.c_str(), &endptr, 10);
+			    if (endptr == size.c_str() || *endptr != '\0' || value == 0)
+				{
+			        std::cerr << "nginx: [emerg] invalid value \"" << original_size << "\" in \"client_max_body_size\" directive in "
+			                  << filename << ":" << line_number << std::endl;
+			        file.close();
+			        servers.clear();
+			        return servers;
+			    }
+			    current_server.client_max_body_size = value;
+			}
             else if (key == "error_page")
 			{
                 int code;
@@ -294,6 +347,11 @@ std::vector<Server> parse_config(const std::string& filename)
         return servers;
     }
     file.close();
+	if (servers.empty())
+    {
+        std::cerr << "nginx: [emerg] no \"server\" directive found in " << filename << std::endl;
+        return servers;
+    }
     return servers;
 }
 bool is_valid_ip(const std::string& ip)

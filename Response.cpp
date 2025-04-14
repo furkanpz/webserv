@@ -50,6 +50,7 @@ std::string Response::getFile(void) const
 
 void Response::setFile(std::string _file, Server &server)
 {
+    pureLink = _file;
     if (_file.find('/') == std::string::npos)
     {
         file = _file;
@@ -57,12 +58,12 @@ void Response::setFile(std::string _file, Server &server)
     }
     else
         file = ".";
-
-    int                         matchValues[4] = {false, -1, -1};
+    int                         matchValues[3] = {false, -1, -1};
     std::vector<std::string>    parts = Utils::split(_file, '/');
     int                         size[3] = {(int)parts.size(), 0, 0};
     std::vector<std::string>    united_parts;
     std::string                 united;
+    std::vector<std::string>::iterator   methodit;
 
     for (int i = 0; i < size[0]; i++)
     {
@@ -80,6 +81,10 @@ void Response::setFile(std::string _file, Server &server)
             {
                 if (!server.locations[d].path.compare(united_parts[i]))
                 {
+                    if (cgiPath.empty() && !server.locations[d].cgi_path.empty())
+                        cgiPath = server.locations[d].cgi_path;
+                    if (cgiExtension.empty() && !server.locations[d].cgi_extension.empty())
+                        cgiExtension = server.locations[d].cgi_extension;
                     matchValues[0] = true; matchValues[1] = d; matchValues[2] = i;
                     break;
                 }
@@ -99,7 +104,20 @@ void Response::setFile(std::string _file, Server &server)
             file += server.rootLocation;
         else
             file = ""; // 404
-    }   
+    }
+    else
+    {
+        std::vector<std::string>::iterator itend = server.locations[matchValues[1]].methods.end();
+        for (methodit = server.locations[matchValues[1]].methods.begin(); methodit != itend; methodit++)
+        {
+            if (*methodit == methods[MAX_INT - requestType])
+                break;
+        }
+        if (methodit != itend)
+            responseCode = 200;
+        else
+            responseCode = 405;
+    }
     for (int i = matchValues[2] + 1; i < size[0]; i++)
         file += "/" + parts[i];
 }
@@ -125,8 +143,9 @@ void Response::setcontentType(std::string _type)
 }
 
 Response::Response() : contentTypeForPost(""), file(""), requestType(NONE), 
-    responseCode(-1), content(""), isCGI(false), ContentLenght(0),
-    contentType(""), isChunked(false), responseCodestr("")
+    responseCode(-1), content(""), isCGI(false), cgiPath(""), cgiExtension(""),
+    ContentLenght(0), contentType(""), isChunked(false), 
+    responseCodestr(""), methodNotAllowed(false)
 {
     
 }
@@ -152,18 +171,61 @@ void Response::setIsChunked(bool _val)
 
 std::string Response::getResponseCodestr(void) const
 {
-    if (this->responseCode == 404)
-        return "404 Not Found";
-    else if (this->responseCode == 200)
+    if (this->responseCode == 200)
         return "200 OK";
-    else if (this->responseCode == 403)
-        return "403 Forbidden";
     else if (this->responseCode == 400)
         return "400 Bad Request";
-    else if (this->responseCode == 500)
-        return "500 Internal Server Error";
+    else if (this->responseCode == 403)
+        return "403 Forbidden";
+    else if (this->responseCode == 404)
+        return "404 Not Found";
+    else if (this->responseCode == 405)
+        return "405 Method Not Allowed";
     else if (this->responseCode == 413)
         return "413 Request Entity Too Large";
+    else if (this->responseCode == 500)
+        return "500 Internal Server Error";
     else
         return "200 OK";
+}
+
+
+void Response::setMethodNotAllowed(bool _tf)
+{
+    this->methodNotAllowed = _tf;
+}
+
+bool Response::getMethodNotAllowed(void) const
+{
+    return this->methodNotAllowed;
+}
+
+std::string Response::getCgiPath(void) const
+{
+    return cgiPath;
+}
+
+void Response::setCgiPath(std::string _cgiPath)
+{
+    this->cgiPath = _cgiPath;
+}
+
+std::string Response::getCgiExtension(void) const
+{
+    return cgiExtension;
+}
+
+void Response::setCgiExtension(std::string _cgiExtension)
+{
+    this->cgiExtension = _cgiExtension;
+}
+
+std::string Response::getPureLink(void) const
+{
+    return pureLink;
+}
+
+void Response::setPureLink(std::string _pureLink)
+{
+    this->pureLink = _pureLink;
 }

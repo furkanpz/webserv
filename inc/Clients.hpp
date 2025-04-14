@@ -23,6 +23,6 @@ class Clients {
         int         getFd() const;
         void        setFd(int _fd);
         int         getRequestType() const;
-        void        setRequestType(int _requestType);
+        void        setRequestType(int);
         
 };

@@ -49,13 +49,13 @@ void WebServer::CGIHandle(Clients &client)
         dup2(fd_in[0], 0); 
         close(fd_in[0]);
 
-        std::string scriptFile = client.response.getFile();
+        std::string file = client.response.getFile();
+        std::string cgiPath = client.response.getCgiPath();
+        const char *argv[] = { cgiPath.c_str(), file.c_str(), NULL };
         #ifdef __APPLE__
-            char *argv[] = { (char *)"python3", (char *)scriptFile.c_str(), NULL };
-            execve("/usr/bin/python3", argv, environ);
+            execve(cgiPath.c_str(), const_cast<char *const *>(argv), environ);
         #else
-            char *argv[] = { (char *)"python3", (char *)scriptFile.c_str(), NULL };
-            execve("/usr/bin/python3", argv, environ);
+            execve(cgiPath.c_str(), const_cast<char *const *>(argv), environ);
         #endif
         std::cerr << "ERROR " << std::endl;
         exit(1);

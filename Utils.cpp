@@ -52,6 +52,10 @@ std::string Utils::returnResponseHeader(Clients &client) {
 
 std::string Utils::readFile(const std::string &fileName, Response &response, Clients &client, int code)
 {
+    if (response.getResponseCode() != 0 && response.getResponseCode() != 200
+        && response.getResponseCode() != -1 )
+        return returnErrorPages(response, response.getResponseCode(), client);
+
     if (isDirectory(fileName))
     {
         std::string indexPath = fileName + "/index.html";
@@ -67,28 +71,25 @@ std::string Utils::readFile(const std::string &fileName, Response &response, Cli
             }
         }
     }
-    else if (fileName.find("cgi-bin") != std::string::npos)
-    {
-        std::string pureFile = "";
-        size_t location = fileName.find("cgi-bin/");
-        if (location != std::string::npos)
-            pureFile = fileName.substr(location);
-        pureFile = pureFile.substr(0, pureFile.find("/"));
-        std::cout << pureFile << std::endl;
-        if (pureFile != "cgi-bin")
-            return "";
-        if (access(fileName.c_str(), F_OK) == 0)
-        {
-            response.setisCGI(true);
-            response.setResponseCode(code);
-            return "";
-        }
-    }
     else
     {
-        if (!client.server.cgi_extensioninserver.empty())
+        if (!client.response.getCgiPath().empty()
+        && !client.server.cgi_extensioninserver.empty())
+        {        
+            if (access(client.server.cgi_pathinserver.c_str(), X_OK) != 0)
+                return returnErrorPages(response, 500, client);
+            else if (access(fileName.c_str(), F_OK) != 0)
+                return returnErrorPages(response, 404, client);
+            else if (access(fileName.c_str(), R_OK) != 0) // python çalıştırması için R_OK yetiyor x_ok düşünülür!!
+                return returnErrorPages(response, 403, client);
+            else if (access(fileName.c_str(), X_OK) != 0)
+                return returnErrorPages(response, 403, client);
             if (fileName.find(client.server.cgi_extensioninserver) != std::string::npos)
+            {   
                 response.setisCGI(true);
+                return "";
+            }
+        }
         std::ifstream file(fileName.c_str());
         if (file)
         {
@@ -292,6 +293,14 @@ void Utils::parseContent(std::string &buffer, Clients &client)
     
     if (client.events == REQUEST && client.response.getRequestType() == NONE)
     {
+        if (request.find("DELETE ") == 0)
+            response.setRequestType(DELETE);
+        else if(request.find("POST ") == 0)
+            response.setRequestType(POST);
+        else if (request.find("GET ") == 0)
+            response.setRequestType(GET);
+        else
+            response.setRequestType(NONE);
         response.setFile(getFileName(request, client), client.server);
         response.setcontentType(get_content_type(request));
         response.setContentLength(getContentLenght(request, response));
@@ -301,21 +310,8 @@ void Utils::parseContent(std::string &buffer, Clients &client)
             return ;
         }
         response.setContent(readFile(response.getFile(), response, client));
-        
-        if (request.find("DELETE ") == 0)
-        {
-            response.setRequestType(DELETE);
+        if ((response.getRequestType() == POST || response.getRequestType() == DELETE))
             getBufferFormData(buffer, client);
-        }
-        else if(request.find("POST ") == 0)
-        {
-            response.setRequestType(POST);
-            getBufferFormData(buffer, client);
-        } 
-        else if (request.find("GET ") == 0)
-            response.setRequestType(GET);
-        else
-            response.setRequestType(NONE);
     }
 }
 
@@ -356,8 +352,8 @@ void Utils::print_response(Response &response)
     if (response.getRequestType() == NONE)
         return ;
     std::string meth("[" + methods[MAX_INT - response.getRequestType()] + "]");
-    std::cout << meth << std::setw(3)
-               << " " << response.getFile() << " " << response.getResponseCode() << std::endl;
+    std::cout << meth << std::setw(2)
+               << " " << response.getPureLink() << "  " << std::setw(2) << response.getResponseCode() << std::endl;
 }
 
 std::vector<std::string> Utils::split(const std::string& s, char delimiter) {
