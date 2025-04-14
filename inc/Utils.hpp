@@ -24,4 +24,6 @@ class Utils
         static void parseChunked_FT(Clients &client, std::string &Body, int Type);
         static std::string returnResponseHeader(Clients &client);
         static std::vector<std::string> split(const std::string &s, char delimiter);
+        static std::string Spacetrim(const std::string &s);
+
 };

@@ -1,8 +1,5 @@
 #include "config.hpp"
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <cctype>
+#include "Utils.hpp"
 
 std::vector<Server> parse_config(const std::string& filename)
 {
@@ -64,8 +61,8 @@ std::vector<Server> parse_config(const std::string& filename)
                 servers.clear();
                 return servers;
             }
-            std::string path = line.substr(path_start, path_end - path_start - 1);
-            current_location.path = path;
+            std::string path = line.substr(path_start, path_end - path_start);
+            current_location.path = Utils::Spacetrim(path);
             current_location.autoindex = false;
             current_location.upload_limit = 0;
             continue;
@@ -183,6 +180,8 @@ std::vector<Server> parse_config(const std::string& filename)
                     ss >> root;
                     root = root.substr(0, root.find(";"));
                     current_location.root = root;
+                    if (current_location.path == "/")
+                        current_server.rootLocation = root;
                 }
                 else if (key == "methods")
 				{
@@ -312,6 +311,7 @@ void print_servers(const std::vector<Server>& servers) {
         std::cout << "Server " << i + 1 << ":\n";
         std::cout << "  Host: " << server.host << "\n";
         std::cout << "  Port: " << server.port << "\n";
+        std::cout << "  Root Location: " << server.rootLocation << "\n";
         std::cout << "  Server Names: ";
         for (size_t j = 0; j < server.server_names.size(); ++j) {
             std::cout << server.server_names[j];

@@ -19,6 +19,18 @@ std::string returnNotFound(Response &response)
     }
     return "";
 }
+std::string Utils::Spacetrim(const std::string &s)
+{
+    std::string::const_iterator it = s.begin();
+    while (it != s.end() && std::isspace(*it))
+        it++;
+
+    std::string::const_reverse_iterator rit = s.rbegin();
+    while (rit.base() != it && std::isspace(*rit))
+        rit++;
+
+    return std::string(it, rit.base());
+}
 
 std::string Utils::returnResponseHeader(Clients &client) {
     std::string header = "HTTP/1.1 ";
@@ -33,6 +45,7 @@ std::string Utils::returnResponseHeader(Clients &client) {
 
 std::string Utils::readFile(const std::string &fileName, Response &response, int code)
 {
+    std::cout << "Filename :" <<  fileName << std::endl;
     if (isDirectory(fileName))
     {
         std::string indexPath = fileName + "/index.html";
@@ -47,18 +60,18 @@ std::string Utils::readFile(const std::string &fileName, Response &response, int
                 return buffer.str();
             }
             else
-                return returnNotFound(response);
+            return returnNotFound(response);
         }
         else
-            return returnNotFound(response);
-
+        return returnNotFound(response);
+        
     }
     else if (fileName.find("cgi-bin") != std::string::npos)
     {
         std::string pureFile = fileName.substr(4); // "www/" ün uzunluğu 4 olmasından dolayı 4 yazıldı sonrasında ana klasör ismine göre pureFile Alınacak!
         pureFile = pureFile.substr(0, pureFile.find("/"));
         if (pureFile != "cgi-bin")
-            return "";
+        return "";
         if (access(fileName.c_str(), F_OK) == 0)
         {
             response.setisCGI(true);
@@ -66,7 +79,7 @@ std::string Utils::readFile(const std::string &fileName, Response &response, int
             return "";
         }
         else
-            return returnNotFound(response);
+        return returnNotFound(response);
     }
     else
     {

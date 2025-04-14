@@ -27,6 +27,7 @@ struct Server {
     std::vector<std::string> server_names;
     unsigned long client_max_body_size;
     std::map<int, std::string> error_pages;
+    std::string rootLocation;
     std::vector<Location> locations;
 };
 bool is_valid_ip(const std::string& ip);

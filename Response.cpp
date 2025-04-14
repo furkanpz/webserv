@@ -55,8 +55,10 @@ void Response::setFile(std::string _file, Server &server)
         file = _file;
         return;
     }
+    else
+        file = ".";
 
-    int                         matchValues[4] = {false, -1, -1, -1};
+    int                         matchValues[4] = {false, -1, -1};
     std::vector<std::string>    parts = Utils::split(_file, '/');
     int                         size[3] = {(int)parts.size(), 0, 0};
     std::vector<std::string>    united_parts;
@@ -76,44 +78,30 @@ void Response::setFile(std::string _file, Server &server)
         {
             for (int d = 0; d < size[2]; d++)
             {
-                if (matchValues[1] == -1 && !server.locations[d].path.compare("/"))
-                    matchValues[1] = d;
                 if (!server.locations[d].path.compare(united_parts[i]))
                 {
-                    matchValues[0] = true; matchValues[2] = d; matchValues[3] = i;
+                    matchValues[0] = true; matchValues[1] = d; matchValues[2] = i;
                     break;
                 }
             }
         }
         if (matchValues[0])
         {
-            // if (server.locations[matchValues[2]].root.empty())
+            // if (server.locations[matchValues[1]].root.empty())
             //     file = "/" + parts[parts.size() - 1]; // not found dönmeli veya parent root alınmalı!
-            file += server.locations[matchValues[2]].root;
+            file += server.locations[matchValues[1]].root;
             break;
         }
     }
     if (!matchValues[0])
     {
-        if (matchValues[1] == -1)
-        {
-            for (int i = 0; i < size[2]; i++)
-            {
-                if (!server.locations[i].path.compare("/"))
-                {
-                    file = server.locations[i].root; break;
-                }
-            }
-        }
+        if (!server.rootLocation.empty())
+            file = server.rootLocation;
         else
-            file = server.locations[matchValues[1]].root;
-        if (matchValues[1] == -1)
-            file = "";
+            file = ""; // 404
     }   
-
-    for (int i = matchValues[3] + 1; i < size[0]; i++)
+    for (int i = matchValues[2] + 1; i < size[0]; i++)
         file += "/" + parts[i];
-    std::cout << "File: " << file << std::endl;
 }
 
 bool Response::getisCGI(void) const

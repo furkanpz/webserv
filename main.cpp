@@ -16,7 +16,7 @@ int main(int ac, char **av)
     {
         try {
             std::vector<Server> servers = parse_config(av[1]);
-            // print_servers(servers);
+            print_servers(servers);
             if (servers.size() == 0)
             {
                 std::cerr << "No server found in the configuration file." << std::endl;
