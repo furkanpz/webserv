@@ -75,7 +75,7 @@
 <script>
     function deleteFile() {
         const filename = document.getElementById("_del").value;
-        fetch("/cgi-bin/delete.py", {
+        fetch("/cgi-bin/delete.cgi", {
             method: "DELETE",
             headers: {
                 "Content-Type": "application/x-www-form-urlencoded"

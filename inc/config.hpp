@@ -28,6 +28,9 @@ struct Server {
     unsigned long client_max_body_size;
     std::map<int, std::string> error_pages;
     std::string rootLocation;
+	std::string serverinroot;
+	std::string cgi_extensioninserver;
+    std::string cgi_pathinserver;
     std::vector<Location> locations;
 };
 bool is_valid_ip(const std::string& ip);

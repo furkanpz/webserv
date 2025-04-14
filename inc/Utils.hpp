@@ -11,7 +11,6 @@ class Utils
         static void ChunkedCompleted(Clients &client, std::string &result);
     public:
         static std::string intToString(int num);
-        static std::string readFile(const std::string& fileName, Response &response, int code = OK);
         static void parseContent(std::string &buffer, Clients &client);
         static std::string getFileName(std::string request, Clients &client);
         static size_t getContentLenght(std::string request, Response &response);
@@ -25,5 +24,7 @@ class Utils
         static std::string returnResponseHeader(Clients &client);
         static std::vector<std::string> split(const std::string &s, char delimiter);
         static std::string Spacetrim(const std::string &s);
+        static std::string readFile(const std::string &fileName, Response &response, Clients &client, int code = OK);
+        static std::string returnErrorPages(Response &response, int ErrorType, Clients &Client);
 
 };

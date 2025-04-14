@@ -172,6 +172,20 @@ std::vector<Server> parse_config(const std::string& filename)
                 }
                 current_server.error_pages[code] = path.substr(0, path.find(";"));
             }
+			else if (key == "root")
+			{
+				std::string serverinroot;
+				ss >> serverinroot;
+				serverinroot = serverinroot.substr(0, serverinroot.find(";"));
+				if(in_location_block)
+				{
+					current_location.root = serverinroot;
+					if (current_location.path == "/")
+						current_server.rootLocation = serverinroot;
+				}
+				else
+					current_server.serverinroot = serverinroot;
+			}
             else if (in_location_block)
 			{
                 if (key == "root")
@@ -231,6 +245,7 @@ std::vector<Server> parse_config(const std::string& filename)
                     ss >> ext;
                     ext = ext.substr(0, ext.find(";"));
                     current_location.cgi_extension = ext;
+					current_server.cgi_extensioninserver = ext;
                 }
                 else if (key == "cgi_path")
 				{
@@ -238,6 +253,7 @@ std::vector<Server> parse_config(const std::string& filename)
                     ss >> path;
                     path = path.substr(0, path.find(";"));
                     current_location.cgi_path = path;
+					current_server.cgi_pathinserver = path;
                 }
                 else if (key == "upload_limit")
 				{
@@ -308,6 +324,7 @@ bool is_valid_ip(const std::string& ip)
 void print_servers(const std::vector<Server>& servers) {
     for (size_t i = 0; i < servers.size(); ++i) {
         const Server& server = servers[i];
+		std::cout << "serverinroot" << server.serverinroot << "\n";
         std::cout << "Server " << i + 1 << ":\n";
         std::cout << "  Host: " << server.host << "\n";
         std::cout << "  Port: " << server.port << "\n";

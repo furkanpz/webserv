@@ -8,16 +8,23 @@ std::string Utils::intToString(int num)
     return ss.str();
 }
 
-std::string returnNotFound(Response &response)
+std::string Utils::returnErrorPages(Response &response, int ErrorType, Clients &Client)
 {
-    response.setResponseCode(NOTFOUND);
-    std::ifstream nf(std::string("www/notFound.html").c_str());
+    Server                                  &server = Client.server;
+    std::string                             file = "";
+    std::map<int, std::string>::iterator    it = server.error_pages.find(ErrorType);
+
+    response.setResponseCode(ErrorType);
+    if (it != server.error_pages.end())
+        file = "." + it->second;
+
+    std::ifstream nf(file.c_str());
     std::stringstream buffer;
     if (nf) {
         buffer << nf.rdbuf();
         return buffer.str();
     }
-    return "";
+    return response.getResponseCodestr();
 }
 std::string Utils::Spacetrim(const std::string &s)
 {
@@ -43,9 +50,8 @@ std::string Utils::returnResponseHeader(Clients &client) {
     return header;
 }
 
-std::string Utils::readFile(const std::string &fileName, Response &response, int code)
+std::string Utils::readFile(const std::string &fileName, Response &response, Clients &client, int code)
 {
-    std::cout << "Filename :" <<  fileName << std::endl;
     if (isDirectory(fileName))
     {
         std::string indexPath = fileName + "/index.html";
@@ -59,30 +65,30 @@ std::string Utils::readFile(const std::string &fileName, Response &response, int
                 response.setResponseCode(code);
                 return buffer.str();
             }
-            else
-            return returnNotFound(response);
         }
-        else
-        return returnNotFound(response);
-        
     }
     else if (fileName.find("cgi-bin") != std::string::npos)
     {
-        std::string pureFile = fileName.substr(4); // "www/" ün uzunluğu 4 olmasından dolayı 4 yazıldı sonrasında ana klasör ismine göre pureFile Alınacak!
+        std::string pureFile = "";
+        size_t location = fileName.find("cgi-bin/");
+        if (location != std::string::npos)
+            pureFile = fileName.substr(location);
         pureFile = pureFile.substr(0, pureFile.find("/"));
+        std::cout << pureFile << std::endl;
         if (pureFile != "cgi-bin")
-        return "";
+            return "";
         if (access(fileName.c_str(), F_OK) == 0)
         {
             response.setisCGI(true);
             response.setResponseCode(code);
             return "";
         }
-        else
-        return returnNotFound(response);
     }
     else
     {
+        if (!client.server.cgi_extensioninserver.empty())
+            if (fileName.find(client.server.cgi_extensioninserver) != std::string::npos)
+                response.setisCGI(true);
         std::ifstream file(fileName.c_str());
         if (file)
         {
@@ -91,9 +97,8 @@ std::string Utils::readFile(const std::string &fileName, Response &response, int
             response.setResponseCode(code);
             return buffer.str();
         }
-        else
-            return returnNotFound(response);
     }
+    return returnErrorPages(response, 404, client);
 }
 
 
@@ -223,8 +228,7 @@ void Utils::parseChunked(Clients &client, std::string &Body, int Type)
     {
         if (result.length() > client.maxBodySize)
         {
-            client.response.setResponseCode(413);
-            client.response.setContent("413 Request Entity Too Large");
+            client.response.setContent(returnErrorPages(client.response, 413, client));
             return ;
         }
         ChunkedCompleted(client, result);
@@ -293,11 +297,10 @@ void Utils::parseContent(std::string &buffer, Clients &client)
         response.setContentLength(getContentLenght(request, response));
         if (response.getContentLength() > client.maxBodySize)
         {
-            response.setResponseCode(413);
-            response.setContent("413 Request Entity Too Large");
+            response.setContent(returnErrorPages(response, 413, client));
             return ;
         }
-        response.setContent(readFile(response.getFile(), response));
+        response.setContent(readFile(response.getFile(), response, client));
         
         if (request.find("DELETE ") == 0)
         {
@@ -370,3 +373,4 @@ std::vector<std::string> Utils::split(const std::string& s, char delimiter) {
     
     return tokens;
 }
+

@@ -79,7 +79,7 @@ void WebServer::CGIHandle(Clients &client)
         waitpid(pid, NULL, 0);
 
         if (response.find("Bad Request\r\n") != std::string::npos)
-            client.response.setResponseCode(BADREQUEST);
+            client.response.setResponseCode(BADREQUEST); //             response = Utils::returnErrorPages(client.response, 400, client);
         
         Utils::print_response(client.response);
         client.client_send(client.fd, response.c_str(), response.size());

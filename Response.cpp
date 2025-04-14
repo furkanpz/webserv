@@ -96,7 +96,7 @@ void Response::setFile(std::string _file, Server &server)
     if (!matchValues[0])
     {
         if (!server.rootLocation.empty())
-            file = server.rootLocation;
+            file += server.rootLocation;
         else
             file = ""; // 404
     }   
