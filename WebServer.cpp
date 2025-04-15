@@ -39,7 +39,7 @@ void WebServer::CGIHandle(Clients &client)
             setenv("CONTENT_TYPE", client.response.getcontentType().c_str(), 1);
             setenv("CONTENT_LENGTH", Utils::intToString(client.response.getContentLength()).c_str(), 1);
         }
-        setenv("REQUEST_METHOD", (client.response.getRequestType() == POST ? "POST" : "GET"), 1);
+        setenv("REQUEST_METHOD", methods[MAX_INT - client.response.getRequestType()].c_str(), 1);
         close(fd_out[0]);  
         dup2(fd_out[1], 1); 
         close(fd_out[1]);

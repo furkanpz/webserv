@@ -19,7 +19,7 @@ class Response{
         bool isChunked;
         std::string responseCodestr;
         bool methodNotAllowed;
-        
+        bool autoIndex;
     public:
         Response();
 
@@ -63,4 +63,7 @@ class Response{
 
         std::string getPureLink(void) const;
         void setPureLink(std::string _pureLink);
+
+        bool getAutoIndex(void) const;
+        void setAutoIndex(bool _autoIndex);
     };

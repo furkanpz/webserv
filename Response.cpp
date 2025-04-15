@@ -95,6 +95,7 @@ void Response::setFile(std::string _file, Server &server)
             // if (server.locations[matchValues[1]].root.empty())
             //     file = "/" + parts[parts.size() - 1]; // not found dönmeli veya parent root alınmalı!
             file += server.locations[matchValues[1]].root;
+            autoIndex = server.locations[matchValues[1]].autoindex; // bakmak lazım configde default true or false ayarı yapılmismi!!
             break;
         }
     }
@@ -228,4 +229,14 @@ std::string Response::getPureLink(void) const
 void Response::setPureLink(std::string _pureLink)
 {
     this->pureLink = _pureLink;
+}
+
+void Response::setAutoIndex(bool _tf)
+{
+    this->autoIndex = _tf;
+}
+
+bool Response::getAutoIndex(void) const
+{
+    return this->autoIndex;
 }

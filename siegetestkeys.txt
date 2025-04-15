@@ -13,5 +13,3 @@ curl -H "Transfer-Encoding: chunked" -F "file=@file" http://127.0.0.1:4443/cgi-b
 
 https://42-evaluation-sheets-hub.vercel.app/Cursus/Webserv/index.html
 
-
-

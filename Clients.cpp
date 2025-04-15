@@ -21,14 +21,7 @@ void Clients::setRequestType(int _requestType){
 void Clients::client_send(int _int, const void *v, size_t s)
 {
     send(_int, v, s, 0);
-    this->response.setRequestType(NONE);
-    this->response.setResponseCode(NONE);
-    this->response.setContentTypeForPost("");
-    this->response.setContent("");
-    this->response.setFile("", this->server);
-    this->response.setContentLength(NONE);
-    this->response.setcontentType("");
-    this->response.setisCGI(false);
+    this->response = Response();
     this->formData = "";
     this->events = REQUEST;
 }

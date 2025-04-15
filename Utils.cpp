@@ -56,26 +56,28 @@ std::string Utils::readFile(const std::string &fileName, Response &response, Cli
         && response.getResponseCode() != -1 )
         return returnErrorPages(response, response.getResponseCode(), client);
 
-    if (isDirectory(fileName))
-    {
-        std::string indexPath = fileName + "/index.html";
-        if (access(indexPath.c_str(), R_OK) == 0)
+        if (isDirectory(fileName))
         {
-            std::ifstream indexFile(indexPath.c_str());
-            if (indexFile)
+            std::string indexPath = fileName + "/index.html";
+            if (access(indexPath.c_str(), R_OK) == 0)
             {
-                std::stringstream buffer;
-                buffer << indexFile.rdbuf();
-                response.setResponseCode(code);
-                return buffer.str();
+                std::ifstream indexFile(indexPath.c_str());
+                if (indexFile)
+                {
+                    std::stringstream buffer;
+                    buffer << indexFile.rdbuf();
+                    response.setResponseCode(code);
+                    return buffer.str();
+                }
             }
         }
-    }
-    else
-    {
+        else
+        {
         if (!client.response.getCgiPath().empty()
         && !client.server.cgi_extensioninserver.empty())
-        {        
+        {
+            if (fileName.find(client.server.cgi_extensioninserver) == std::string::npos)
+                return returnErrorPages(response, 404, client);
             if (access(client.server.cgi_pathinserver.c_str(), X_OK) != 0)
                 return returnErrorPages(response, 500, client);
             else if (access(fileName.c_str(), F_OK) != 0)
@@ -84,11 +86,8 @@ std::string Utils::readFile(const std::string &fileName, Response &response, Cli
                 return returnErrorPages(response, 403, client);
             else if (access(fileName.c_str(), X_OK) != 0)
                 return returnErrorPages(response, 403, client);
-            if (fileName.find(client.server.cgi_extensioninserver) != std::string::npos)
-            {   
-                response.setisCGI(true);
-                return "";
-            }
+            response.setisCGI(true);
+            return "";
         }
         std::ifstream file(fileName.c_str());
         if (file)
@@ -290,7 +289,6 @@ void Utils::parseContent(std::string &buffer, Clients &client)
 {
     std::string request(buffer);
     Response &response = client.response;
-    
     if (client.events == REQUEST && client.response.getRequestType() == NONE)
     {
         if (request.find("DELETE ") == 0)
@@ -370,3 +368,45 @@ std::vector<std::string> Utils::split(const std::string& s, char delimiter) {
     return tokens;
 }
 
+
+#include <dirent.h>
+#include <sys/stat.h>
+#include <string>
+#include <sstream>
+#include <iostream>
+
+std::string Utils::generateAutoIndex(const std::string& path, const std::string& requestPath) {
+    DIR* dir;
+    struct dirent* entry;
+    struct stat info;
+    std::ostringstream html;
+
+    html << "<html><head><title>Index of " << requestPath << "</title></head>";
+    html << "<body><h1>Index of " << requestPath << "</h1><ul>";
+
+    dir = opendir(path.c_str());
+    if (!dir) { // DEBUG 
+        html << "<p>Failed to open directory</p></body></html>";
+        return html.str();
+    }
+
+    while ((entry = readdir(dir)) != NULL) {
+        std::string name = entry->d_name;
+
+        if (name == "." || name == "..")
+            continue;
+
+        std::string fullPath = path + "/" + name;
+
+        if (stat(fullPath.c_str(), &info) == 0 && S_ISDIR(info.st_mode)) {
+            name += "/";
+        }
+
+        html << "<li><a href=\"" << name << "\">" << name << "</a></li>";
+    }
+
+    closedir(dir);
+
+    html << "</ul></body></html>";
+    return html.str();
+}
