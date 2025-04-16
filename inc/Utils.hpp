@@ -26,5 +26,5 @@ class Utils
         static std::string Spacetrim(const std::string &s);
         static std::string readFile(const std::string &fileName, Response &response, Clients &client, int code = OK);
         static std::string returnErrorPages(Response &response, int ErrorType, Clients &Client);
-        static std::string generateAutoIndex(const std::string& path, const std::string& requestPath);
+        static std::string generateAutoIndex(const std::string& path, const std::string& requestPath, Clients &client);
 };

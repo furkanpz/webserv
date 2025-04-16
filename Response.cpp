@@ -92,8 +92,6 @@ void Response::setFile(std::string _file, Server &server)
         }
         if (matchValues[0])
         {
-            // if (server.locations[matchValues[1]].root.empty())
-            //     file = "/" + parts[parts.size() - 1]; // not found dönmeli veya parent root alınmalı!
             file += server.locations[matchValues[1]].root;
             autoIndex = server.locations[matchValues[1]].autoindex; // bakmak lazım configde default true or false ayarı yapılmismi!!
             break;
@@ -101,21 +99,30 @@ void Response::setFile(std::string _file, Server &server)
     }
     if (!matchValues[0])
     {
-        if (!server.rootLocation.empty())
-            file += server.rootLocation;
+        std::cout << server.rootLocation << std::endl;
+        if (!server.locations[server.rootLocation].root.empty())
+            file += server.locations[server.rootLocation].root;
         else
             file = ""; // 404
+        autoIndex = server.locations[server.rootLocation].autoindex;
+        _methods = server.locations[server.rootLocation].methods;
     }
     else
     {
+        _methods = server.locations[matchValues[1]].methods;
         std::vector<std::string>::iterator itend = server.locations[matchValues[1]].methods.end();
-        for (methodit = server.locations[matchValues[1]].methods.begin(); methodit != itend; methodit++)
+        if (requestType != NONE)
         {
-            if (*methodit == methods[MAX_INT - requestType])
-                break;
+            for (methodit = server.locations[matchValues[1]].methods.begin(); methodit != itend; methodit++)
+            {
+                if (*methodit == methods[MAX_INT - requestType])
+                    break;
+            }
+            if (methodit != itend)
+                responseCode = 200;
+            else
+                responseCode = 405;
         }
-        if (methodit != itend)
-            responseCode = 200;
         else
             responseCode = 405;
     }
@@ -174,6 +181,18 @@ std::string Response::getResponseCodestr(void) const
 {
     if (this->responseCode == 200)
         return "200 OK";
+    else if (this->responseCode == 301)
+        return "301 Moved Permanently";
+    else if (this->responseCode == 302)
+        return "302 Found";
+    else if (this->responseCode == 303)
+        return "303 See Other";
+    else if (this->responseCode == 304)
+        return "304 Not Modified";
+    else if (this->responseCode == 307)
+        return "307 Temporary Redirect";
+    else if (this->responseCode == 308)
+        return "308 Permanent Redirect";
     else if (this->responseCode == 400)
         return "400 Bad Request";
     else if (this->responseCode == 403)
@@ -239,4 +258,14 @@ void Response::setAutoIndex(bool _tf)
 bool Response::getAutoIndex(void) const
 {
     return this->autoIndex;
+}
+
+const std::vector<std::string> &Response::getMethods(void) const
+{
+    return this->_methods;
+}
+
+void Response::setMethods(std::vector<std::string> _methods)
+{
+    this->_methods = _methods;
 }

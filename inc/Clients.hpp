@@ -6,7 +6,6 @@
 class Clients {
     private:
         int         requestType;
-        
     public:
         pollfd      *poll;
         int         fd;
@@ -16,6 +15,11 @@ class Clients {
         int         index;
         unsigned long maxBodySize;
         Server server;
+        bool        CGI_DONE;
+        pid_t         CGI_pid;
+        int         CGI_fd_out;
+        int         CGI_fd_in;
+
 
         Clients(pollfd &newPoll, int, int, unsigned long, Server &);
         ~Clients();

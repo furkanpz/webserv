@@ -9,6 +9,7 @@ UPLOAD_DIR = "./uploads"
 form = cgi.FieldStorage()
 
 temp = sys.stdin.read()
+print(temp)
 
 filename = temp.split("=", 1)[1]
 filename = os.path.basename(filename)

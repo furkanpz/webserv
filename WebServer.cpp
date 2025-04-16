@@ -25,9 +25,11 @@ void WebServer::CGIHandle(Clients &client)
     extern char **environ;
     int fd_out[2]; 
     int fd_in[2];
+    // client.CGI_fd_in = fd_in[0];
+    // client.CGI_fd_out = fd_out[1];
     if (pipe(fd_out) == -1 || pipe(fd_in) == -1)
         return;
-    pid_t pid = fork();
+    int pid = fork();
     if (pid < 0) { 
         close(fd_out[0]); close(fd_out[1]);
         close(fd_in[0]); close(fd_in[1]);
@@ -70,17 +72,16 @@ void WebServer::CGIHandle(Clients &client)
 
         if (client.response.getRequestType() == POST || client.response.getRequestType() == DELETE) 
             write(fd_in[1], client.response.getContentTypeForPost().c_str(), client.response.getContentTypeForPost().size());
-        
+
         close(fd_in[1]); 
         while ((bytesRead = read(fd_out[0], buffer, sizeof(buffer))) > 0)
             response.append(buffer, bytesRead);
-    
-        close(fd_out[0]);
-        waitpid(pid, NULL, 0);
+
+        close(fd_out[0]);    
+        waitpid(client.CGI_pid, NULL, 0);
 
         if (response.find("Bad Request\r\n") != std::string::npos)
             client.response.setResponseCode(BADREQUEST); //             response = Utils::returnErrorPages(client.response, 400, client);
-        
         Utils::print_response(client.response);
         client.client_send(client.fd, response.c_str(), response.size());
     }
@@ -179,6 +180,7 @@ void WebServer::addClient(int fd, short events)
 
 void WebServer::closeClient(int index)
 {
+    std::cout << "CLIENT KAPANDI" << std::endl;
     close(clients[index].fd);
     clients.erase(clients.begin() + index);
     pollFds.erase(pollFds.begin() + index);

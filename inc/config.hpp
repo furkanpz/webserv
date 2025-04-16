@@ -27,7 +27,7 @@ struct Server {
     std::vector<std::string> server_names;
     unsigned long client_max_body_size;
     std::map<int, std::string> error_pages;
-    std::string rootLocation;
+    int rootLocation;
 	std::string serverinroot;
 	std::string cgi_extensioninserver;
     std::string cgi_pathinserver;

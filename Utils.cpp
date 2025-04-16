@@ -43,6 +43,24 @@ std::string Utils::returnResponseHeader(Clients &client) {
     std::string header = "HTTP/1.1 ";
     header += client.response.getResponseCodestr() + "\r\n";
     header += "Content-Type: text/html\r\n";
+    if (client.response.getResponseCode() == 405)
+    {
+        header += "Allow: ";
+        std::vector<std::string> methods = client.response.getMethods();
+        for (size_t i = 0; i < methods.size(); i++)
+        {
+            header += methods[i];
+            if (i != methods.size() - 1)
+                header += ", ";
+        }
+        header += "\r\n";
+    }
+    if (client.response.getResponseCode() == 301)
+        header += "Location: " + client.response.getPureLink() + "/\r\n";
+    else if (client.response.getResponseCode() == 302)
+        header += "Location: " + client.response.getPureLink() + "/\r\n";
+    else if (client.response.getResponseCode() == 303)
+        header += "Location: " + client.response.getPureLink() + "/\r\n";
     header += "Connection: keep-alive\r\n";
     header += "Content-Length: " + Utils::intToString(client.response.getContent().length()) + "\r\n";
     header += "\r\n";
@@ -58,6 +76,9 @@ std::string Utils::readFile(const std::string &fileName, Response &response, Cli
 
         if (isDirectory(fileName))
         {
+            std::string pureLink = response.getPureLink();
+            if (pureLink[pureLink.length() - 1] != '/')
+                return returnErrorPages(response, 301, client);
             std::string indexPath = fileName + "/index.html";
             if (access(indexPath.c_str(), R_OK) == 0)
             {
@@ -70,14 +91,16 @@ std::string Utils::readFile(const std::string &fileName, Response &response, Cli
                     return buffer.str();
                 }
             }
+            else if (response.getAutoIndex())
+                return Utils::generateAutoIndex(fileName, client.response.getFile(), client);
+            else
+                return returnErrorPages(response, 403, client);
         }
         else
         {
         if (!client.response.getCgiPath().empty()
         && !client.server.cgi_extensioninserver.empty())
         {
-            if (fileName.find(client.server.cgi_extensioninserver) == std::string::npos)
-                return returnErrorPages(response, 404, client);
             if (access(client.server.cgi_pathinserver.c_str(), X_OK) != 0)
                 return returnErrorPages(response, 500, client);
             else if (access(fileName.c_str(), F_OK) != 0)
@@ -86,6 +109,8 @@ std::string Utils::readFile(const std::string &fileName, Response &response, Cli
                 return returnErrorPages(response, 403, client);
             else if (access(fileName.c_str(), X_OK) != 0)
                 return returnErrorPages(response, 403, client);
+            if (fileName.find(client.server.cgi_extensioninserver) == std::string::npos)
+                return returnErrorPages(response, 500, client);
             response.setisCGI(true);
             return "";
         }
@@ -369,13 +394,9 @@ std::vector<std::string> Utils::split(const std::string& s, char delimiter) {
 }
 
 
-#include <dirent.h>
-#include <sys/stat.h>
-#include <string>
-#include <sstream>
-#include <iostream>
 
-std::string Utils::generateAutoIndex(const std::string& path, const std::string& requestPath) {
+
+std::string Utils::generateAutoIndex(const std::string& path, const std::string& requestPath, Clients &client) {
     DIR* dir;
     struct dirent* entry;
     struct stat info;
@@ -402,7 +423,7 @@ std::string Utils::generateAutoIndex(const std::string& path, const std::string&
             name += "/";
         }
 
-        html << "<li><a href=\"" << name << "\">" << name << "</a></li>";
+        html << "<li><a href=\"" << client.response.getPureLink() +  name << "\">" << name << "</a></li>";
     }
 
     closedir(dir);

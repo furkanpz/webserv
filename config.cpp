@@ -234,7 +234,7 @@ std::vector<Server> parse_config(const std::string& filename)
 				{
 					current_location.root = serverinroot;
 					if (current_location.path == "/")
-						current_server.rootLocation = serverinroot;
+						current_server.rootLocation = current_server.locations.size();
 				}
 				else
 					current_server.serverinroot = serverinroot;
@@ -248,7 +248,7 @@ std::vector<Server> parse_config(const std::string& filename)
                     root = root.substr(0, root.find(";"));
                     current_location.root = root;
                     if (current_location.path == "/")
-                        current_server.rootLocation = root;
+                        current_server.rootLocation = current_server.locations.size();
                 }
                 else if (key == "methods")
 				{

@@ -20,6 +20,7 @@ class Response{
         std::string responseCodestr;
         bool methodNotAllowed;
         bool autoIndex;
+        std::vector<std::string> _methods;
     public:
         Response();
 
@@ -66,4 +67,7 @@ class Response{
 
         bool getAutoIndex(void) const;
         void setAutoIndex(bool _autoIndex);
+
+        const std::vector<std::string> &getMethods(void) const;
+        void setMethods(std::vector<std::string> _methods);
     };
