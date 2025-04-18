@@ -25,8 +25,8 @@ void WebServer::CGIHandle(Clients &client)
     extern char **environ;
     int fd_out[2]; 
     int fd_in[2];
-    // client.CGI_fd_in = fd_in[0];
-    // client.CGI_fd_out = fd_out[1];
+    //  client.CGI_fd_in = fd_in[0]; 
+    //  client.CGI_fd_out = fd_out[1];
     if (pipe(fd_out) == -1 || pipe(fd_in) == -1)
         return;
     int pid = fork();
@@ -53,7 +53,7 @@ void WebServer::CGIHandle(Clients &client)
 
         std::string file = client.response.getFile();
         std::string cgiPath = client.response.getCgiPath();
-        const char *argv[] = { cgiPath.c_str(), file.c_str(), NULL };
+        const char *argv[] = { cgiPath.c_str(),"-W", "ignore" ,file.c_str(), NULL};
         #ifdef __APPLE__
             execve(cgiPath.c_str(), const_cast<char *const *>(argv), environ);
         #else
@@ -81,7 +81,7 @@ void WebServer::CGIHandle(Clients &client)
         waitpid(client.CGI_pid, NULL, 0);
 
         if (response.find("Bad Request\r\n") != std::string::npos)
-            client.response.setResponseCode(BADREQUEST); //             response = Utils::returnErrorPages(client.response, 400, client);
+            client.response.setResponseCode(BADREQUEST); 
         Utils::print_response(client.response);
         client.client_send(client.fd, response.c_str(), response.size());
     }

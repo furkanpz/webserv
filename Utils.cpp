@@ -74,30 +74,30 @@ std::string Utils::readFile(const std::string &fileName, Response &response, Cli
         && response.getResponseCode() != -1 )
         return returnErrorPages(response, response.getResponseCode(), client);
 
-        if (isDirectory(fileName))
+    if (isDirectory(fileName))
+    {
+        std::string pureLink = response.getPureLink();
+        if (pureLink[pureLink.length() - 1] != '/')
+            return returnErrorPages(response, 301, client);
+        std::string indexPath = fileName + "/index.html";
+        if (access(indexPath.c_str(), R_OK) == 0)
         {
-            std::string pureLink = response.getPureLink();
-            if (pureLink[pureLink.length() - 1] != '/')
-                return returnErrorPages(response, 301, client);
-            std::string indexPath = fileName + "/index.html";
-            if (access(indexPath.c_str(), R_OK) == 0)
+            std::ifstream indexFile(indexPath.c_str());
+            if (indexFile)
             {
-                std::ifstream indexFile(indexPath.c_str());
-                if (indexFile)
-                {
-                    std::stringstream buffer;
-                    buffer << indexFile.rdbuf();
-                    response.setResponseCode(code);
-                    return buffer.str();
-                }
+                std::stringstream buffer;
+                buffer << indexFile.rdbuf();
+                response.setResponseCode(code);
+                return buffer.str();
             }
-            else if (response.getAutoIndex())
-                return Utils::generateAutoIndex(fileName, client.response.getFile(), client);
-            else
-                return returnErrorPages(response, 403, client);
         }
+        else if (response.getAutoIndex())
+            return Utils::generateAutoIndex(fileName, client.response.getFile(), client);
         else
-        {
+            return returnErrorPages(response, 403, client);
+    }
+    else
+    {
         if (!client.response.getCgiPath().empty()
         && !client.server.cgi_extensioninserver.empty())
         {

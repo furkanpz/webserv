@@ -1,18 +1,20 @@
-#!/usr/bin/python3
+#!/usr/bin/python3 -w ignore::DeprecationWarning
 
 import cgi
 import os
 import html
 import sys
+import warnings
+
+warnings.filterwarnings("ignore")
+
 UPLOAD_DIR = "./uploads"
 
 form = cgi.FieldStorage()
 
-temp = sys.stdin.read()
-print(temp)
+filename = form.getvalue("filename")
 
-filename = temp.split("=", 1)[1]
-filename = os.path.basename(filename)
+
 flag = 0
 response = """
 <html lang="en">
