@@ -3,16 +3,14 @@
 import cgi
 import os
 import html
-import sys
+from urllib.parse import quote
 
 UPLOAD_DIR = "./uploads"
 
 form = cgi.FieldStorage()
 
-filename = form.getvalue("filename")
-
-
-flag = 0
+filename = form.getvalue("download_field")
+header = None
 response = """
 <html lang="en">
 <head>
@@ -80,49 +78,20 @@ response = """
 </head>
 <body>
     <div class="container">
-        <h2>Dosya Sil</h2>
+        <h2>Dosya İndir</h2>
 """
-
 
 if filename:
     path = os.path.join(UPLOAD_DIR, filename)
-    try:
-        os.remove(path)
-        response += f"""
-        <div class="message success">
-            <p><strong>Success! </strong><em>{filename}</em> başarıyla silindi.</p>
-        </div>
-        """
-        flag = 1
-    except Exception as e:
-        response += f"""
-        <div class="message error">
-            <p><strong>Error!</strong> Dosya silinemedi</p>
-        </div>
-        """
+    if os.path.exists(path):
+        header += "Content-type: application/octet-stream\r\n"
+        header += f"Content-Disposition: attachment; filename={quote(filename)}\r\n"
+        with open(path, 'rb') as f:
+            print(f.read()) 
 else:
     response += """
     <div class="message error">
     <p><strong>Error!</strong> Geçersiz dosya adı.</p>
     </div>
     """
-
-response += """
-    <a href="/" class="button">Anasayfa</a>
-    </div>
-</body>
-</html>
-"""
-
-header = None
-if flag == 0:
-    header = "HTTP/1.1 400 Bad Request\r\n"
-else:
-    header = "HTTP/1.1 200 OK\r\n"
-
-if (header is None):
-    header = "HTTP/1.1 405 Method Not Allowed\r\n"
-    header += "Allow: DELETE\r\n"
-
-header += "Content-Type: text/html\r\nContent-Length: " + str(len(response)) + "\r\n\r\n"
 print(header + response)

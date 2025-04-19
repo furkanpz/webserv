@@ -116,7 +116,7 @@ WebServer::~WebServer()
 
 void WebServer::setNonBlocking(int fd)
 {
-    if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1)
+    if (fcntl(fd, F_SETFL, O_RDWR | O_APPEND | O_NONBLOCK | O_LARGEFILE) == -1)
         throw ServerExcp("Fcntl Error");
 }
 
@@ -155,15 +155,16 @@ void WebServer::ServerResponse(Clients &client)
                 if (headers.find("\r\n\r\n") != std::string::npos)
                     break;
             }
-            else
+            else 
+            {
+                if (bytesRead == -1) return;
                 break;
+            }
 
         }
     }
     if (CheckResponse(client, headers))
         return;
-
-
     std::string response  = Utils::returnResponseHeader(client);
     Utils::print_response(client.response);
     client.client_send(client.fd, response.c_str(), response.size());
@@ -198,12 +199,16 @@ void WebServer::readFormData(int i)
             if (tempChunk && clients[i].formData.find("0\r\n\r\n") != std::string::npos)
                 Utils::parseChunked(clients[i], clients[i].formData, 1); 
         }
-        else 
+        else
             break;
     }
-    if ((clients[i].response.getContentLength() == clients[i].formData.size()
+    if (clients[i].response.getResponseCode() == 413)
+    {
+        std::string response = Utils::returnResponseHeader(clients[i]);
+        clients[i].client_send(clients[i].fd, response.c_str(), response.size());
+    }
+    else if (clients[i].response.getContentLength() == clients[i].formData.size()
         || tempChunk != clients[i].response.getIsChunked())
-        && clients[i].response.getResponseCode() != 413)
     {
         clients[i].response.setContentTypeForPost(clients[i].formData);
         if (clients[i].response.getisCGI())
@@ -238,14 +243,10 @@ void WebServer::start() {
                 {
                     if (clients[i].events == WAIT_FORM)
                     {
+                        Response &tempResponse = clients[i].response;
                         readFormData(i);
-                        if (clients[i].response.getResponseCode() == 413)
-                        {
-                            clients[i].response.setContent("413 Request Entity Too Large");
-                            std::string response = Utils::returnResponseHeader(clients[i]);
-                            clients[i].client_send(clients[i].fd, response.c_str(), response.size());
+                        if (tempResponse.getResponseCode() == 413)
                             continue;
-                        }
                     }
                     ServerResponse(clients[i]);
                 }
