@@ -9,30 +9,29 @@ class Response;
 
 class WebServer {
     private:
-        std::string Host;
-        int serverFd, addrLen, Port;
+        std::vector<Server> &w_servers;
         std::vector<pollfd> pollFds;
         std::vector<Clients> clients;
-        struct addrinfo first, *res;
+        int serverSize;
         Server server;
     private:
         void ServerResponse(Clients &);
         void setNonBlocking(int fd);
-        int SocketCreator(const std::string &host);
-        struct sockaddr_in address;
+        int SocketCreator(Server &server);
         bool CheckResponse(Clients &client, std::string &headers);
-        void addClient(int fd, short events);
+        void addClient(int fd, short events, size_t i);
         void closeClient(int index);
         void CGIHandle(Clients &client);
-        void readFormData(int i); // get rest data
-        int new_connection();
-
+        void readFormData(int i);
+        int new_connection(size_t i);
+        void CGIEXECUTE(Clients &client, int fd_out[2], int fd_in[2]);
+        void ServersCreator(std::vector<Server> &servers);
 
     public:
         void start();
     
     public:
-        WebServer(Server &server);
+        WebServer(std::vector<Server> &servers);
         ~WebServer();
 
         class ServerExcp : public std::exception {

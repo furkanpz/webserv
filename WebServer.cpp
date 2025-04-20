@@ -4,29 +4,29 @@
 #include "sys/wait.h"
 
 
-int WebServer::SocketCreator(const std::string &host){
-    addrLen = sizeof(address);
-    address.sin_family = AF_INET;
-    address.sin_port = htons(Port);
+int WebServer::SocketCreator(Server &server){
+    
+    server.addrLen = sizeof(server.address);
+    server.address.sin_family = AF_INET;
+    server.address.sin_port = htons(server.port);
 
-    std::memset(&first, 0, sizeof(first));
+    std::memset(&server.first, 0, sizeof(server.first));
 
-    first.ai_family = AF_INET;
-    first.ai_socktype = SOCK_STREAM;
-    first.ai_flags = AI_PASSIVE;
+    server.first.ai_family = AF_INET;
+    server.first.ai_socktype = SOCK_STREAM;
+    server.first.ai_flags = AI_PASSIVE;
 
-    int status = getaddrinfo(host.c_str(), Utils::intToString(Port).c_str(), &first, &res);
-    if (status != 0) {freeaddrinfo(res); throw ServerExcp("getaddrinfo Error");}
-    return (socket(res->ai_family, res->ai_socktype, res->ai_protocol));
+    int status = getaddrinfo(server.host.c_str(), Utils::intToString(server.port).c_str(), &server.first, &server.res);
+    if (status != 0) {freeaddrinfo(server.res); throw ServerExcp("getaddrinfo Error");}
+    return (socket(server.res->ai_family, server.res->ai_socktype, server.res->ai_protocol));
 }
+
 
 void WebServer::CGIHandle(Clients &client)
 {
     extern char **environ;
     int fd_out[2]; 
     int fd_in[2];
-    //  client.CGI_fd_in = fd_in[0]; 
-    //  client.CGI_fd_out = fd_out[1];
     if (pipe(fd_out) == -1 || pipe(fd_in) == -1)
         return;
     int pid = fork();
@@ -54,11 +54,7 @@ void WebServer::CGIHandle(Clients &client)
         std::string file = client.response.getFile();
         std::string cgiPath = client.response.getCgiPath();
         const char *argv[] = { cgiPath.c_str() ,file.c_str(), NULL};
-        #ifdef __APPLE__
-            execve(cgiPath.c_str(), const_cast<char *const *>(argv), environ);
-        #else
-            execve(cgiPath.c_str(), const_cast<char *const *>(argv), environ);
-        #endif
+        execve(cgiPath.c_str(), const_cast<char *const *>(argv), environ);
         std::cerr << "ERROR " << std::endl;
         exit(1);
     }
@@ -78,30 +74,42 @@ void WebServer::CGIHandle(Clients &client)
             response.append(buffer, bytesRead);
 
         close(fd_out[0]);    
-        waitpid(client.CGI_pid, NULL, 0);
+        waitpid(pid, NULL, 0);
 
         if (response.find("Bad Request\r\n") != std::string::npos)
             client.response.setResponseCode(BADREQUEST); 
-        Utils::print_response(client.response);
+        Utils::print_response(client);
         client.client_send(client.fd, response.c_str(), response.size());
     }
 }
 
-WebServer::WebServer(Server &server) : Host(server.host), Port(server.port), server(server){
-    serverFd = SocketCreator(Host);
-    if (serverFd == 0) {freeaddrinfo(res); close(serverFd); throw ServerExcp("Socket Error");}
-    int opt = 1;
-    if (setsockopt(serverFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
-        close(serverFd);
-        freeaddrinfo(res);
-        throw ServerExcp("Setsockopt Error");
-    }
-    if (bind(serverFd, res->ai_addr, res->ai_addrlen) < 0) {freeaddrinfo(res); close(serverFd); throw ServerExcp("Bind Error");}
-    freeaddrinfo(res);
-    if (listen(serverFd, SOMAXCONN) < 0) {close(serverFd); throw ServerExcp("Listen Error");}
+void WebServer::ServersCreator(std::vector<Server> &servers)
+{
+    for (size_t i = 0; i < servers.size(); i++)
+    {
+        Server &server = servers[i];
+        server.serverFd = SocketCreator(servers[i]);
+        if (server.serverFd == 0) {freeaddrinfo(server.res); close(server.serverFd); throw ServerExcp("Socket Error");}
+        int opt = 1;
+        if (setsockopt(server.serverFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+            close(server.serverFd);
+            freeaddrinfo(server.res);
+            throw ServerExcp("Setsockopt Error");
+        }
+        std::cout << server.host << ":" << server.port << std::endl;
+        if (bind(server.serverFd, server.res->ai_addr, server.res->ai_addrlen) < 0) {freeaddrinfo(server.res); close(server.serverFd); throw ServerExcp("Bind Error");}
+        freeaddrinfo(server.res);
+        if (listen(server.serverFd, SOMAXCONN) < 0) {close(server.serverFd); throw ServerExcp("Listen Error");}
 
-    setNonBlocking(serverFd);
-    addClient(serverFd, POLLIN);
+        setNonBlocking(server.serverFd);
+        addClient(server.serverFd, POLLIN, i);
+        std::cout << "Server listening on " << server.host << ":" << server.port << "..." << std::endl;
+    }
+    serverSize = pollFds.size();
+    std::cout << "Server size: " << serverSize << std::endl;
+}
+WebServer::WebServer(std::vector<Server> &servers) : w_servers(servers) {
+    ServersCreator(servers);
 }
 
 
@@ -111,7 +119,6 @@ WebServer::~WebServer()
     {
         close(pollFds[x].fd);
     }
-    close(serverFd);
 }
 
 void WebServer::setNonBlocking(int fd)
@@ -166,15 +173,15 @@ void WebServer::ServerResponse(Clients &client)
     if (CheckResponse(client, headers))
         return;
     std::string response  = Utils::returnResponseHeader(client);
-    Utils::print_response(client.response);
+    Utils::print_response(client);
     client.client_send(client.fd, response.c_str(), response.size());
 }
 
 
-void WebServer::addClient(int fd, short events)
+void WebServer::addClient(int fd, short events, size_t i)
 {
     pollfd clientPollFd = {fd, events, 0};
-    Clients newClient(clientPollFd, fd, (int)clients.size(), this->server.client_max_body_size, this->server);
+    Clients newClient(clientPollFd, fd, (int)clients.size(), this->w_servers[i].client_max_body_size, w_servers[i]);
     pollFds.push_back(clientPollFd);
     clients.push_back(newClient);
 }
@@ -216,18 +223,18 @@ void WebServer::readFormData(int i)
     }
 }
 
-int WebServer::new_connection()
+int WebServer::new_connection(size_t i)
 {
-    int clientFd = accept(serverFd, (sockaddr *)&address, (socklen_t *)&addrLen);
+    Server &server = w_servers[i];
+    int clientFd = accept(server.serverFd, (sockaddr *)&server.address, (socklen_t *)&server.addrLen);
     if (clientFd < 0) { return clientFd; }
 
     setNonBlocking(clientFd);
-    addClient(clientFd, POLLIN);
+    addClient(clientFd, POLLIN, i);
     return 1;
 }
 
 void WebServer::start() {
-    std::cout << "Server listening on " << Host << ":" << Port << "..." << std::endl;
 
     while (true) {
         int events = poll(pollFds.data(), pollFds.size(), -1);
@@ -235,7 +242,7 @@ void WebServer::start() {
             throw ServerExcp("Poll Error");
         }
         for (size_t i = 0; i < pollFds.size(); i++) {
-            if (i == 0 && (pollFds[i].revents & POLLIN) && new_connection() < 0)
+            if (i < serverSize && (pollFds[i].revents & POLLIN) && new_connection(i) < 0)
                 continue;
             else if (i > 0)
             {

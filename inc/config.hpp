@@ -7,6 +7,9 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <netdb.h>
 
 struct Location {
     std::string path;
@@ -32,6 +35,11 @@ struct Server {
 	std::string cgi_extensioninserver;
     std::string cgi_pathinserver;
     std::vector<Location> locations;
+    struct addrinfo first, *res;
+    int addrLen;
+    struct sockaddr_in address;
+    int serverFd;
+
 	Server() : client_max_body_size(1024 * 1024), port(0){}
 };
 bool is_valid_ip(const std::string& ip);

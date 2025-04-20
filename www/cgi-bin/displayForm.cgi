@@ -2,10 +2,16 @@
 import cgi
 
 form = cgi.FieldStorage()
-name = form.getvalue("name", None)
-surname = form.getvalue("surname", None)
-age = form.getvalue("age", None)
-nickname = form.getvalue("nickname", None)
+try :
+    name = form.getvalue("name", None)
+    surname = form.getvalue("surname", None)
+    age = form.getvalue("age", None)
+    nickname = form.getvalue("nickname", None)
+except:
+    header = "HTTP/1.1 400 Bad Request\r\n"
+    response = "Invalid input"
+    print(header + response)
+    exit()
 
 response = f"""<!DOCTYPE html>
 <html lang="tr">

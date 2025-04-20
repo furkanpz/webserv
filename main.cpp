@@ -23,7 +23,7 @@ int main(int ac, char **av)
                 std::cerr << "No server found in the configuration file." << std::endl;
                 return (1);
             }
-            WebServer *serv  = new WebServer(servers[0]);
+            WebServer *serv  = new WebServer(servers);
             g_server = serv;
             signal(SIGINT, ServerKill);
             signal(SIGPIPE, SIG_IGN);

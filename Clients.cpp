@@ -1,7 +1,7 @@
 #include "Clients.hpp"
 
 Clients::Clients(pollfd &newPoll, int fd, int index, unsigned long mbs, Server &server) : requestType(-1), poll(&newPoll), fd(fd),
-    formData(""), events(REQUEST), index(index), maxBodySize(mbs), server(server), CGI_DONE(true), CGI_pid(0), CGI_fd_out(0), CGI_fd_in(0)
+    formData(""), events(REQUEST), index(index), maxBodySize(mbs), server(server)
 {
 
 }

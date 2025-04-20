@@ -376,12 +376,14 @@ std::string Utils::getFileName(std::string request, Clients &client)
     return  path;
 }
 
-void Utils::print_response(Response &response)
+void Utils::print_response(Clients &client)
 {
+    Response &response = client.response;
     if (response.getRequestType() == NONE)
         return ;
-    std::string meth("[" + methods[MAX_INT - response.getRequestType()] + "]");
-    std::cout << meth << std::setw(2)
+    std::string meth(" [" + methods[MAX_INT - response.getRequestType()] + "]");
+    std::string serverinfo(client.server.host + ":" + intToString(client.server.port));
+    std::cout << "Server " << serverinfo <<meth << std::setw(2)
                << " " << response.getPureLink() << "  " << std::setw(2) << response.getResponseCode() << std::endl;
 }
 

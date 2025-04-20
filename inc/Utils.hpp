@@ -16,7 +16,7 @@ class Utils
         static size_t getContentLenght(std::string request, Response &response);
         static void doubleSeperator(std::string key, std::string &buffer, Clients &client);
         static int countSeperator(const std::string &buffer, const std::string &target);
-        static void print_response(Response &response);
+        static void print_response(Clients &client);
         static void getBufferFormData(std::string &buffer, Clients &client);
         static bool isDirectory(const std::string& path);
         static void parseChunked(Clients &client, std::string &Body, int Type);
