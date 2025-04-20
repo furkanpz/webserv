@@ -8,7 +8,7 @@ siege -c 10 -t 30s http://127.0.0.1:4444
 
 siege -c 100 -t 1s --content-type "application/multipart/form-data" --  'http://127.0.0.1:4444/cgi-bin/displayForm.py POST 13a\r\nname=T&surname=T&age=T&nickname=T'
 
-curl -H "Transfer-Encoding: chunked" -F "file=@file" http://127.0.0.1:4443/cgi-bin/upload.py
+curl -H "Transfer-Encoding: chunked" -F "file=@file" http://127.0.0.1:4444/cgi-bin/upload.cgi
 
 
 https://42-evaluation-sheets-hub.vercel.app/Cursus/Webserv/index.html

@@ -53,7 +53,7 @@ void WebServer::CGIHandle(Clients &client)
 
         std::string file = client.response.getFile();
         std::string cgiPath = client.response.getCgiPath();
-        const char *argv[] = { cgiPath.c_str(),"-W", "ignore" ,file.c_str(), NULL};
+        const char *argv[] = { cgiPath.c_str() ,file.c_str(), NULL};
         #ifdef __APPLE__
             execve(cgiPath.c_str(), const_cast<char *const *>(argv), environ);
         #else
@@ -71,7 +71,7 @@ void WebServer::CGIHandle(Clients &client)
         close(fd_in[0]);
 
         if (client.response.getRequestType() == POST || client.response.getRequestType() == DELETE) 
-            write(fd_in[1], client.response.getContentTypeForPost().c_str(), client.response.getContentTypeForPost().size());
+            write(fd_in[1], client.response.getFormData().c_str(), client.response.getFormData().size());
 
         close(fd_in[1]); 
         while ((bytesRead = read(fd_out[0], buffer, sizeof(buffer))) > 0)
@@ -116,7 +116,7 @@ WebServer::~WebServer()
 
 void WebServer::setNonBlocking(int fd)
 {
-    if (fcntl(fd, F_SETFL, O_RDWR | O_APPEND | O_NONBLOCK | O_LARGEFILE) == -1)
+    if (fcntl(fd, F_SETFL, O_RDWR | O_APPEND | O_NONBLOCK) == -1)
         throw ServerExcp("Fcntl Error");
 }
 
@@ -181,7 +181,7 @@ void WebServer::addClient(int fd, short events)
 
 void WebServer::closeClient(int index)
 {
-    std::cout << "CLIENT KAPANDI" << std::endl;
+    // std::cout << "CLIENT KAPANDI" << std::endl;
     close(clients[index].fd);
     clients.erase(clients.begin() + index);
     pollFds.erase(pollFds.begin() + index);
@@ -210,7 +210,7 @@ void WebServer::readFormData(int i)
     else if (clients[i].response.getContentLength() == clients[i].formData.size()
         || tempChunk != clients[i].response.getIsChunked())
     {
-        clients[i].response.setContentTypeForPost(clients[i].formData);
+        clients[i].response.setFormData(clients[i].formData);
         if (clients[i].response.getisCGI())
             CGIHandle(clients[i]);
     }

@@ -198,7 +198,7 @@ void Utils::ChunkedCompleted(Clients &client, std::string &result)
 
     client.formData = result;
     client.response.setContentLength(result.length());
-    client.response.setContentTypeForPost(result);
+    client.response.setFormData(result);
     client.response.setIsChunked(false);
     if (firstPos == std::string::npos)
         return ;
@@ -211,7 +211,7 @@ void Utils::ChunkedCompleted(Clients &client, std::string &result)
         {
             std::string temp = result.substr(firstIndex - 2);
             if (temp.length() == client.response.getContentLength())
-                client.response.setContentTypeForPost(temp);
+                client.response.setFormData(temp);
             else
                 client.formData.append(temp);
         }
@@ -266,9 +266,15 @@ void Utils::parseChunked_FT(Clients &client, std::string &Body, int Type) {
         if (headerEnd != std::string::npos)
             Body = Body.substr(headerEnd + 4);
     }
-    client.formData.append(Body);
-    if (client.formData.find("0\r\n\r\n") == std::string::npos) {
+    if (Body.find("0\r\n\r\n") == std::string::npos) {
+        client.formData.append(Body);
         client.events = WAIT_FORM;
+    }
+    else
+    {
+        client.response.setFormData(Body);
+        client.response.setIsChunked(false);
+        client.response.setContentLength(Body.length());
     }
 }
 
@@ -287,12 +293,12 @@ void Utils::doubleSeperator(std::string key, std::string &buffer, Clients &clien
         {
             std::string temp = buffer.substr(firstIndex - 2);
             if (temp.length() == client.response.getContentLength())
-                client.response.setContentTypeForPost(temp);
+                client.response.setFormData(temp);
             else
                 client.formData.append(temp);
         }
     }
-    if (client.response.getContentTypeForPost().length() != client.response.getContentLength()) // DEBUG İÇİN
+    if (client.response.getFormData().length() != client.response.getContentLength())
         client.events = WAIT_FORM;
 }
 
@@ -306,7 +312,7 @@ void Utils::getBufferFormData(std::string &buffer, Clients &client)
     else if (!contentType.find("application/x-www-form-urlencoded"))
     {
         if (buffer.find("\r\n\r\n") != std::string::npos)
-            client.response.setContentTypeForPost(buffer.substr(buffer.find("\r\n\r\n") + 4));
+            client.response.setFormData(buffer.substr(buffer.find("\r\n\r\n") + 4));
     }
 }
 

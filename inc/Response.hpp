@@ -5,7 +5,7 @@
 
 class Response{
     private:
-        std::string contentTypeForPost;
+        std::string formData;
         std::string file;
         std::string pureLink;
         int requestType;
@@ -51,8 +51,8 @@ class Response{
         bool getIsChunked() const;
         void setIsChunked(bool _val);
 
-        std::string getContentTypeForPost(void) const;
-        void setContentTypeForPost(std::string _contentTypeForPost);
+        std::string getFormData(void) const;
+        void setFormData(std::string _contentTypeForPost);
 
         std::string getResponseCodestr(void) const;
 

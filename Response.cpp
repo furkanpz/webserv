@@ -93,13 +93,12 @@ void Response::setFile(std::string _file, Server &server)
         if (matchValues[0])
         {
             file += server.locations[matchValues[1]].root;
-            autoIndex = server.locations[matchValues[1]].autoindex; // bakmak lazım configde default true or false ayarı yapılmismi!!
+            autoIndex = server.locations[matchValues[1]].autoindex;
             break;
         }
     }
     if (!matchValues[0])
     {
-        std::cout << server.rootLocation << std::endl;
         if (!server.locations[server.rootLocation].root.empty())
             file += server.locations[server.rootLocation].root;
         else
@@ -150,7 +149,7 @@ void Response::setcontentType(std::string _type)
     contentType = _type;
 }
 
-Response::Response() : contentTypeForPost(""), file(""), requestType(NONE), 
+Response::Response() : formData(""), file(""), requestType(NONE), 
     responseCode(-1), content(""), isCGI(false), cgiPath(""), cgiExtension(""),
     ContentLenght(0), contentType(""), isChunked(false), 
     responseCodestr(""), methodNotAllowed(false)
@@ -158,14 +157,14 @@ Response::Response() : contentTypeForPost(""), file(""), requestType(NONE),
     
 }
 
-std::string Response::getContentTypeForPost(void) const
+std::string Response::getFormData(void) const
 {
-    return contentTypeForPost;
+    return formData;
 }
 
-void Response::setContentTypeForPost(std::string _contentTypeForPost)
+void Response::setFormData(std::string _contentTypeForPost)
 {
-    contentTypeForPost = _contentTypeForPost;
+    formData = _contentTypeForPost;
 }
 bool Response::getIsChunked() const
 {
