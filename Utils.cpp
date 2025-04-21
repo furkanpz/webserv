@@ -58,9 +58,7 @@ std::string Utils::returnResponseHeader(Clients &client) {
     if (client.response.getResponseCode() == 301)
         header += "Location: " + client.response.getPureLink() + "/\r\n";
     else if (client.response.getResponseCode() == 302)
-        header += "Location: " + client.response.getPureLink() + "/\r\n";
-    else if (client.response.getResponseCode() == 303)
-        header += "Location: " + client.response.getPureLink() + "/\r\n";
+        header += "Location: " + client.response.getRedirect() + "/\r\n";
     header += "Connection: keep-alive\r\n";
     header += "Content-Length: " + Utils::intToString(client.response.getContent().length()) + "\r\n";
     header += "\r\n";
@@ -78,7 +76,7 @@ std::string Utils::readFile(const std::string &fileName, Response &response, Cli
     {
         std::string pureLink = response.getPureLink();
         if (pureLink[pureLink.length() - 1] != '/')
-            return returnErrorPages(response, 301, client);
+            return returnErrorPages(response, MOVEDPERMANENTLY, client);
         std::string indexPath = fileName + "/index.html";
         if (access(indexPath.c_str(), R_OK) == 0)
         {
@@ -102,15 +100,15 @@ std::string Utils::readFile(const std::string &fileName, Response &response, Cli
         && !client.server.cgi_extensioninserver.empty())
         {
             if (access(client.server.cgi_pathinserver.c_str(), X_OK) != 0)
-                return returnErrorPages(response, 500, client);
+                return returnErrorPages(response, INTERNALSERVERERROR, client);
             else if (access(fileName.c_str(), F_OK) != 0)
-                return returnErrorPages(response, 404, client);
+                return returnErrorPages(response, FORBIDDEN, client);
             else if (access(fileName.c_str(), R_OK) != 0) // python çalıştırması için R_OK yetiyor x_ok düşünülür!!
-                return returnErrorPages(response, 403, client);
+                return returnErrorPages(response, FORBIDDEN, client);
             else if (access(fileName.c_str(), X_OK) != 0)
-                return returnErrorPages(response, 403, client);
+                return returnErrorPages(response, FORBIDDEN, client);
             if (fileName.find(client.server.cgi_extensioninserver) == std::string::npos)
-                return returnErrorPages(response, 500, client);
+                return returnErrorPages(response, INTERNALSERVERERROR, client);
             response.setisCGI(true);
             return "";
         }
@@ -123,7 +121,25 @@ std::string Utils::readFile(const std::string &fileName, Response &response, Cli
             return buffer.str();
         }
     }
-    return returnErrorPages(response, 404, client);
+    return returnErrorPages(response, NOTFOUND, client);
+}
+
+bool Utils::wait_with_timeout(pid_t pid, int timeout_seconds) {
+    std::time_t start = std::time(NULL);
+    
+    while (true) {
+        pid_t result = waitpid(pid, NULL, WNOHANG);
+        if (result == pid)
+            return true;
+        else if (result == -1)
+            return false;
+        if (std::time(NULL) - start >= timeout_seconds)
+            break;
+    }
+
+    kill(pid, SIGKILL);
+    waitpid(pid, NULL, 0);
+    return false;
 }
 
 
@@ -253,7 +269,7 @@ void Utils::parseChunked(Clients &client, std::string &Body, int Type)
     {
         if (result.length() > client.maxBodySize)
         {
-            client.response.setContent(returnErrorPages(client.response, 413, client));
+            client.response.setContent(returnErrorPages(client.response, ENTITYTOOLARGE, client));
             return ;
         }
         ChunkedCompleted(client, result);
@@ -333,9 +349,10 @@ void Utils::parseContent(std::string &buffer, Clients &client)
         response.setFile(getFileName(request, client), client.server);
         response.setcontentType(get_content_type(request));
         response.setContentLength(getContentLenght(request, response));
+        std::cout << "response code " << response.getResponseCode() << std::endl;
         if (response.getContentLength() > client.maxBodySize)
         {
-            response.setContent(returnErrorPages(response, 413, client));
+            response.setContent(returnErrorPages(response, ENTITYTOOLARGE, client));
             return ;
         }
         response.setContent(readFile(response.getFile(), response, client));
@@ -410,8 +427,8 @@ std::string Utils::generateAutoIndex(const std::string& path, const std::string&
     struct stat info;
     std::ostringstream html;
 
-    html << "<html><head><title>Index of " << requestPath << "</title></head>";
-    html << "<body><h1>Index of " << requestPath << "</h1><ul>";
+    html << "<html><head><title>Index of " << requestPath << "</title></head>\n";
+    html << "<body><h1>Index of " << requestPath << "</h1><ul>\n";
 
     dir = opendir(path.c_str());
     if (!dir) { // DEBUG 
@@ -431,7 +448,7 @@ std::string Utils::generateAutoIndex(const std::string& path, const std::string&
             name += "/";
         }
 
-        html << "<li><a href=\"" << client.response.getPureLink() +  name << "\">" << name << "</a></li>";
+        html << "<li><a href=\"" << client.response.getPureLink() +  name << "\" download>" << name << "</a></li>\n";
     }
 
     closedir(dir);

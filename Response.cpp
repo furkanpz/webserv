@@ -91,23 +91,31 @@ void Response::setFile(std::string _file, Server &server)
             }
         }
         if (matchValues[0])
-        {
-            file += server.locations[matchValues[1]].root;
-            autoIndex = server.locations[matchValues[1]].autoindex;
             break;
-        }
     }
     if (!matchValues[0])
     {
         if (!server.locations[server.rootLocation].root.empty())
             file += server.locations[server.rootLocation].root;
-        else
-            file = ""; // 404
+        else if (!server.serverinroot.empty())
+            file += server.serverinroot;
+        else 
+        {
+            file += "";
+            responseCode = 404;
+            return;
+        }
         autoIndex = server.locations[server.rootLocation].autoindex;
         _methods = server.locations[server.rootLocation].methods;
     }
     else
     {
+        if (!server.locations[matchValues[1]].redirect.empty())
+        {
+            redirect = server.locations[matchValues[1]].redirect;
+            responseCode = 302;
+            return;
+        }
         _methods = server.locations[matchValues[1]].methods;
         std::vector<std::string>::iterator itend = server.locations[matchValues[1]].methods.end();
         if (requestType != NONE)
@@ -124,6 +132,19 @@ void Response::setFile(std::string _file, Server &server)
         }
         else
             responseCode = 405;
+        if (server.locations[matchValues[1]].root.empty() && !server.locations[server.rootLocation].root.empty())
+            file += server.locations[server.rootLocation].root;
+        else if (server.locations[matchValues[1]].root.empty() && !server.serverinroot.empty())
+            file += server.serverinroot;
+        else if (server.locations[matchValues[1]].root.empty())
+        {
+            file += "";
+            responseCode = 404;
+            return;
+        }
+        else
+            file += server.locations[matchValues[1]].root;
+        autoIndex = server.locations[matchValues[1]].autoindex;
     }
     for (int i = matchValues[2] + 1; i < size[0]; i++)
         file += "/" + parts[i];
@@ -200,6 +221,12 @@ std::string Response::getResponseCodestr(void) const
         return "404 Not Found";
     else if (this->responseCode == 405)
         return "405 Method Not Allowed";
+    else if (this->responseCode == 406)
+        return "406 Not Acceptable";
+    else if (this->responseCode == 408)
+        return "408 Request Timeout";
+    else if (this->responseCode == 411)
+        return "411 Length Required";
     else if (this->responseCode == 413)
         return "413 Request Entity Too Large";
     else if (this->responseCode == 500)
@@ -267,4 +294,14 @@ const std::vector<std::string> &Response::getMethods(void) const
 void Response::setMethods(std::vector<std::string> _methods)
 {
     this->_methods = _methods;
+}
+
+std::string Response::getRedirect(void) const
+{
+    return redirect;
+}
+
+void Response::setRedirect(std::string _redirect)
+{
+    this->redirect = _redirect;
 }

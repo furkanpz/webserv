@@ -70,16 +70,25 @@ void WebServer::CGIHandle(Clients &client)
             write(fd_in[1], client.response.getFormData().c_str(), client.response.getFormData().size());
 
         close(fd_in[1]); 
-        while ((bytesRead = read(fd_out[0], buffer, sizeof(buffer))) > 0)
-            response.append(buffer, bytesRead);
+        bool finished = Utils::wait_with_timeout(pid, 2);
+        if (finished)
+        {
+            while ((bytesRead = read(fd_out[0], buffer, sizeof(buffer))) > 0)
+                response.append(buffer, bytesRead);
 
-        close(fd_out[0]);    
-        waitpid(pid, NULL, 0);
-
-        if (response.find("Bad Request\r\n") != std::string::npos)
-            client.response.setResponseCode(BADREQUEST); 
-        Utils::print_response(client);
-        client.client_send(client.fd, response.c_str(), response.size());
+            close(fd_out[0]);    
+            if (response.find("Bad Request\r\n") != std::string::npos)
+                client.response.setResponseCode(BADREQUEST); 
+            Utils::print_response(client);
+            client.client_send(client.fd, response.c_str(), response.size());
+        }
+        else
+        {
+            client.response.setResponseCode(TIMEOUT);
+            std::string response = Utils::returnResponseHeader(client);
+            Utils::print_response(client);
+            client.client_send(client.fd, response.c_str(), response.size());
+        }
     }
 }
 
@@ -209,7 +218,7 @@ void WebServer::readFormData(int i)
         else
             break;
     }
-    if (clients[i].response.getResponseCode() == 413)
+    if (clients[i].response.getResponseCode() == ENTITYTOOLARGE)
     {
         std::string response = Utils::returnResponseHeader(clients[i]);
         clients[i].client_send(clients[i].fd, response.c_str(), response.size());
@@ -252,7 +261,7 @@ void WebServer::start() {
                     {
                         Response &tempResponse = clients[i].response;
                         readFormData(i);
-                        if (tempResponse.getResponseCode() == 413)
+                        if (tempResponse.getResponseCode() == ENTITYTOOLARGE)
                             continue;
                     }
                     ServerResponse(clients[i]);

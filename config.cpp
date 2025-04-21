@@ -285,7 +285,7 @@ std::vector<Server> parse_config(const std::string& filename)
                     index = index.substr(0, index.find(";"));
                     current_location.index = index;
                 }
-                else if (key == "redirect")
+                else if (key == "return")
 				{
                     std::string redirect;
                     ss >> redirect;

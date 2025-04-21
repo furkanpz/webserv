@@ -7,9 +7,16 @@ import sys
 
 UPLOAD_DIR = "./uploads"
 
+
 form = cgi.FieldStorage()
 
-filename = form.getvalue("filename")
+try :
+    filename = form.getvalue("filename")
+except:
+    header = "HTTP/1.1 400 Bad Request\r\n"
+    response = "Invalid input"
+    print(header + response)
+    exit()
 
 
 flag = 0

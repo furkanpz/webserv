@@ -21,6 +21,8 @@ class Response{
         bool methodNotAllowed;
         bool autoIndex;
         std::vector<std::string> _methods;
+        std::string redirect;
+
     public:
         Response();
 
@@ -70,4 +72,8 @@ class Response{
 
         const std::vector<std::string> &getMethods(void) const;
         void setMethods(std::vector<std::string> _methods);
+
+        std::string getRedirect(void) const;
+        void setRedirect(std::string _redirect);
+        
     };
