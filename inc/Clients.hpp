@@ -4,22 +4,19 @@
 #include "Response.hpp"
 
 class Clients {
-    private:
-        int         requestType;
     public:
-        pollfd      *poll;
         int         fd;
         std::string formData;
         int         events;
         Response    response;
-        int         index;
         unsigned long maxBodySize;
         Server server;
+        std::string writeBuffer;
+        size_t      writeOffset;
 
-
-        Clients(pollfd &newPoll, int, int, unsigned long, Server &);
+        Clients(int, unsigned long, Server &);
         ~Clients();
-        void client_send(int _int, const void *v, size_t s);
+        void clearClient(void);
         int         getFd() const;
         void        setFd(int _fd);
         int         getRequestType() const;

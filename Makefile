@@ -25,6 +25,7 @@ clean:
 fclean: clean
 		$(RM) $(NAME)
 		$(RM) $(TESTERFILE)
+		$(RM) ./uploads/*
 re: fclean all
 
 

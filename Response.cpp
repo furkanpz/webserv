@@ -56,99 +56,74 @@ void Response::setFile(std::string _file, Server &server)
         file = _file;
         return;
     }
-    else
-        file = ".";
-    int                         matchValues[3] = {false, -1, -1};
-    std::vector<std::string>    parts = Utils::split(_file, '/');
-    int                         size[3] = {(int)parts.size(), 0, 0};
-    std::vector<std::string>    united_parts;
-    std::string                 united;
-    std::vector<std::string>::iterator   methodit;
 
-    for (int i = 0; i < size[0]; i++)
+    file = ".";
+    std::vector<std::string> parts = Utils::split(_file, '/');
+    std::vector<std::string> united_parts;
+    std::string united;
+
+    for (std::vector<std::string>::size_type i = 0; i < parts.size(); ++i)
     {
         united += "/" + parts[i];
         united_parts.push_back(united);
     }
-    if (size[0] == 0)
+    if (parts.empty())
         united_parts.push_back("/");
-    size[1] = (int)united_parts.size(); size[2] = server.locations.size();
-    for (int i = size[1] - 1; i >= 0; i--)
+
+    int matchedIndex = -1, locationIndex = -1;
+    for (int i = (int)united_parts.size() - 1; i >= 0 && locationIndex == -1; --i)
     {
-        if (!matchValues[0])
+        for (size_t j = 0; j < server.locations.size(); ++j)
         {
-            for (int d = 0; d < size[2]; d++)
+            if (server.locations[j].path == united_parts[i])
             {
-                if (!server.locations[d].path.compare(united_parts[i]))
-                {
-                    if (cgiPath.empty() && !server.locations[d].cgi_path.empty())
-                        cgiPath = server.locations[d].cgi_path;
-                    if (cgiExtension.empty() && !server.locations[d].cgi_extension.empty())
-                        cgiExtension = server.locations[d].cgi_extension;
-                    matchValues[0] = true; matchValues[1] = d; matchValues[2] = i;
-                    break;
-                }
+                if (cgiPath.empty() && !server.locations[j].cgi_path.empty())
+                    cgiPath = server.locations[j].cgi_path;
+                if (cgiExtension.empty() && !server.locations[j].cgi_extension.empty())
+                    cgiExtension = server.locations[j].cgi_extension;
+                locationIndex = j; matchedIndex = i;
+                break;
             }
         }
-        if (matchValues[0])
-            break;
     }
-    if (!matchValues[0])
+
+    const Location &loc = (locationIndex == -1) ? server.locations[server.rootLocation] : server.locations[locationIndex];
+
+    if (locationIndex != -1 && !loc.redirect.empty())
     {
-        if (!server.locations[server.rootLocation].root.empty())
-            file += server.locations[server.rootLocation].root;
-        else if (!server.serverinroot.empty())
-            file += server.serverinroot;
-        else 
-        {
-            file += "";
-            responseCode = 404;
-            return;
-        }
-        autoIndex = server.locations[server.rootLocation].autoindex;
-        _methods = server.locations[server.rootLocation].methods;
+        redirect = loc.redirect;
+        responseCode = 302;
+        return;
     }
+
+    if (!loc.root.empty())
+        file += loc.root;
+    else if (!server.serverinroot.empty())
+        file += server.serverinroot;
     else
     {
-        if (!server.locations[matchValues[1]].redirect.empty())
-        {
-            redirect = server.locations[matchValues[1]].redirect;
-            responseCode = 302;
-            return;
-        }
-        _methods = server.locations[matchValues[1]].methods;
-        std::vector<std::string>::iterator itend = server.locations[matchValues[1]].methods.end();
-        if (requestType != NONE)
-        {
-            for (methodit = server.locations[matchValues[1]].methods.begin(); methodit != itend; methodit++)
-            {
-                if (*methodit == methods[MAX_INT - requestType])
-                    break;
-            }
-            if (methodit != itend)
-                responseCode = 200;
-            else
-                responseCode = 405;
-        }
+        responseCode = 404;
+        return;
+    }
+
+    autoIndex = loc.autoindex;
+    _methods = loc.methods;
+
+    if (requestType != NONE)
+    {
+        std::string methodName = methods[MAX_INT - requestType];
+        if (std::find(_methods.begin(), _methods.end(), methodName) != _methods.end())
+            responseCode = 200;
         else
             responseCode = 405;
-        if (server.locations[matchValues[1]].root.empty() && !server.locations[server.rootLocation].root.empty())
-            file += server.locations[server.rootLocation].root;
-        else if (server.locations[matchValues[1]].root.empty() && !server.serverinroot.empty())
-            file += server.serverinroot;
-        else if (server.locations[matchValues[1]].root.empty())
-        {
-            file += "";
-            responseCode = 404;
-            return;
-        }
-        else
-            file += server.locations[matchValues[1]].root;
-        autoIndex = server.locations[matchValues[1]].autoindex;
     }
-    for (int i = matchValues[2] + 1; i < size[0]; i++)
+    else
+        responseCode = 405;
+
+    for (size_t i = matchedIndex + 1; i < parts.size(); ++i)
         file += "/" + parts[i];
 }
+
 
 bool Response::getisCGI(void) const
 {

@@ -1,7 +1,7 @@
 #include "Clients.hpp"
 
-Clients::Clients(pollfd &newPoll, int fd, int index, unsigned long mbs, Server &server) : requestType(-1), poll(&newPoll), fd(fd),
-    formData(""), events(REQUEST), index(index), maxBodySize(mbs), server(server)
+Clients::Clients(int fd, unsigned long mbs, Server &server) : fd(fd), formData(""), events(REQUEST),
+    maxBodySize(mbs), server(server), writeBuffer(""), writeOffset(0)
 {
 
 }
@@ -10,18 +10,12 @@ Clients::~Clients()
 {
 }
 
-int Clients::getRequestType() const{
-    return requestType;
-}
-
-void Clients::setRequestType(int _requestType){
-    this->requestType = _requestType;
-}
-
-void Clients::client_send(int _int, const void *v, size_t s)
+void Clients::clearClient(void)
 {
-    send(_int, v, s, 0);
     this->response = Response();
     this->formData = "";
     this->events = REQUEST;
+    this->writeBuffer.clear();
+    this->writeOffset = 0;
 }
+

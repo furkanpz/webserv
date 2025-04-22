@@ -48,10 +48,4 @@ response = f"""<!DOCTYPE html>
 </body>
 </html>"""
 
-if (name is None or surname is None or age is None or nickname is None):
-    header = "HTTP/1.1 400 Bad Request\r\n"
-else:
-    header = "HTTP/1.1 200 OK\r\n"
-
-header += "Content-Type: text/html\r\nContent-Length: " + str(len(response)) + "\r\n\r\n"
-print(header + response)
+print(response)

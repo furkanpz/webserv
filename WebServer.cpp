@@ -21,6 +21,13 @@ int WebServer::SocketCreator(Server &server){
     return (socket(server.res->ai_family, server.res->ai_socktype, server.res->ai_protocol));
 }
 
+int WebServer::findPollIndex(int fd) {
+    for (size_t j = 0; j < pollFds.size(); ++j) {
+        if (pollFds[j].fd == fd)
+            return j;
+    }
+    return -1;
+}
 
 void WebServer::CGIHandle(Clients &client)
 {
@@ -67,27 +74,31 @@ void WebServer::CGIHandle(Clients &client)
         close(fd_in[0]);
 
         if (client.response.getRequestType() == POST || client.response.getRequestType() == DELETE) 
+        {    
             write(fd_in[1], client.response.getFormData().c_str(), client.response.getFormData().size());
-
+            if (client.response.getFormData().empty())
+                client.response.setResponseCode(BADREQUEST);
+        }
         close(fd_in[1]); 
         bool finished = Utils::wait_with_timeout(pid, 2);
         if (finished)
         {
+            std::string header;
+            header += "HTTP/1.1 " + client.response.getResponseCodestr() + "\r\n";
+            header += "Content-Type: text/html\r\nContent-Length: ";
             while ((bytesRead = read(fd_out[0], buffer, sizeof(buffer))) > 0)
                 response.append(buffer, bytesRead);
-
-            close(fd_out[0]);    
-            if (response.find("Bad Request\r\n") != std::string::npos)
-                client.response.setResponseCode(BADREQUEST); 
-            Utils::print_response(client);
-            client.client_send(client.fd, response.c_str(), response.size());
+            std::ostringstream oss;
+            oss << response.size();
+            header += oss.str() + "\r\n\r\n";
+            close(fd_out[0]);
+            client.writeBuffer  = header + response;
         }
         else
         {
             client.response.setResponseCode(TIMEOUT);
             std::string response = Utils::returnResponseHeader(client);
-            Utils::print_response(client);
-            client.client_send(client.fd, response.c_str(), response.size());
+            client.writeBuffer  = response;
         }
     }
 }
@@ -182,23 +193,25 @@ void WebServer::ServerResponse(Clients &client)
     if (CheckResponse(client, headers))
         return;
     std::string response  = Utils::returnResponseHeader(client);
-    Utils::print_response(client);
-    client.client_send(client.fd, response.c_str(), response.size());
+    client.writeBuffer  = response;
 }
 
 
 void WebServer::addClient(int fd, short events, size_t i)
 {
     pollfd clientPollFd = {fd, events, 0};
-    Clients newClient(clientPollFd, fd, (int)clients.size(), this->w_servers[i].client_max_body_size, w_servers[i]);
+    Clients newClient(fd, this->w_servers[i].client_max_body_size, w_servers[i]);
     pollFds.push_back(clientPollFd);
     clients.push_back(newClient);
 }
 
-void WebServer::closeClient(int index)
-{
-    // std::cout << "CLIENT KAPANDI" << std::endl;
-    close(clients[index].fd);
+void WebServer::closeClient(int index) {
+    int fd = pollFds[index].fd;
+    if (fd < 0) 
+        return;
+    close(fd);
+    pollFds[index].fd = -1;
+    std::cout << "Client disconnected" << std::endl;
     clients.erase(clients.begin() + index);
     pollFds.erase(pollFds.begin() + index);
 }
@@ -221,12 +234,15 @@ void WebServer::readFormData(int i)
     if (clients[i].response.getResponseCode() == ENTITYTOOLARGE)
     {
         std::string response = Utils::returnResponseHeader(clients[i]);
-        clients[i].client_send(clients[i].fd, response.c_str(), response.size());
+        clients[i].writeBuffer  = response;
+        clients[i].events = REQUEST;
+        pollFds[i].events |= POLLOUT;
     }
     else if (clients[i].response.getContentLength() == clients[i].formData.size()
         || tempChunk != clients[i].response.getIsChunked())
     {
         clients[i].response.setFormData(clients[i].formData);
+        clients[i].events = REQUEST;
         if (clients[i].response.getisCGI())
             CGIHandle(clients[i]);
     }
@@ -243,36 +259,73 @@ int WebServer::new_connection(size_t i)
     return 1;
 }
 
+void WebServer::client_send(int i) {
+    Clients &c = clients[i];
+    if (c.writeOffset >= c.writeBuffer.size()) {
+        pollFds[i].events &= ~POLLOUT;
+        return;
+    }
+
+    size_t  toSend = c.writeBuffer.size() - c.writeOffset;
+    ssize_t n      = ::send(c.fd,
+                            c.writeBuffer.data() + c.writeOffset,
+                            toSend,
+                            0);
+    if (n > 0) {
+        c.writeOffset += n;
+        if (c.writeOffset >= c.writeBuffer.size()) {
+            Utils::print_response(c);
+            c.clearClient();
+            pollFds[i].events &= ~POLLOUT;
+        }
+    }
+    else if (n == 0) {
+        std::cout << "Client SEND disconnected" << std::endl;
+        closeClient(i);
+    }
+    else {
+        return;
+    }
+}
+
 void WebServer::start() {
 
     while (true) {
         int events = poll(pollFds.data(), pollFds.size(), -1);
-        if (events < 0) {
-            throw ServerExcp("Poll Error");
-        }
+        if (events < 0) throw ServerExcp("Poll Error");
+
         for (size_t i = 0; i < pollFds.size(); i++) {
-            if (i < serverSize && (pollFds[i].revents & POLLIN) && new_connection(i) < 0)
+            short re = pollFds[i].revents;
+            if (re & (POLLHUP | POLLERR)) {
+                if (re & POLLERR)
+                    std::cerr << "POLLERR" << std::endl;
+                closeClient(i);
                 continue;
-            else if (i > 0)
-            {
-                if (pollFds[i].revents & POLLIN)
-                {
-                    if (clients[i].events == WAIT_FORM)
-                    {
-                        Response &tempResponse = clients[i].response;
-                        readFormData(i);
-                        if (tempResponse.getResponseCode() == ENTITYTOOLARGE)
-                            continue;
-                    }
+            }
+
+            if (i < serverSize && (re & POLLIN)) {
+                new_connection(i);
+                continue;
+            }
+
+            if (i > 0 && (re & POLLIN)) {
+                if (clients[i].events == WAIT_FORM) {
+                    readFormData(i);
+                    if (clients[i].response.getResponseCode() == ENTITYTOOLARGE)
+                        continue;
+                } else {
                     ServerResponse(clients[i]);
                 }
-                if (pollFds[i].revents & POLLOUT)
-                    std::cout << "POLL OUT VERIYOR LAAAN" << std::endl;
-                if (pollFds[i].revents & POLLHUP || pollFds[i].revents & POLLERR) 
-                    closeClient(i);
+
+                if (!clients[i].writeBuffer.empty() && clients[i].events != WAIT_FORM)
+                    pollFds[i].events |= POLLOUT;
+            }
+
+            if (i > 0 && (re & POLLOUT) && clients[i].events != WAIT_FORM
+            && !clients[i].writeBuffer.empty())
+                client_send(i);
             }
         }
-    }
 }
 
 const char *WebServer::ServerExcp::what() const throw()

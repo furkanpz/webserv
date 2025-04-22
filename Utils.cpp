@@ -60,69 +60,86 @@ std::string Utils::returnResponseHeader(Clients &client) {
     else if (client.response.getResponseCode() == 302)
         header += "Location: " + client.response.getRedirect() + "/\r\n";
     header += "Connection: keep-alive\r\n";
-    header += "Content-Length: " + Utils::intToString(client.response.getContent().length()) + "\r\n";
+    std::ostringstream oss;
+    oss << client.response.getContent().length();
+    header += "Content-Length: " + oss.str() + "\r\n";
     header += "\r\n";
     header += client.response.getContent();
     return header;
 }
 
-std::string Utils::readFile(const std::string &fileName, Response &response, Clients &client, int code)
-{
-    if (response.getResponseCode() != 0 && response.getResponseCode() != 200
-        && response.getResponseCode() != -1 )
-        return returnErrorPages(response, response.getResponseCode(), client);
+bool readFileToString(const std::string& path, std::string& out) {
+    std::ifstream file(path.c_str(), std::ios::in | std::ios::binary);
+    if (!file)
+        return false;
+    file.seekg(0, std::ios::end);
+    std::streamoff size = file.tellg();
+    if (size > 0) {
+        out.resize(static_cast<std::size_t>(size));
+        file.seekg(0, std::ios::beg);
+        file.read(&out[0], size);
+    } else {
+        out.clear();
+    }
+    return true;
+}
 
-    if (isDirectory(fileName))
-    {
-        std::string pureLink = response.getPureLink();
-        if (pureLink[pureLink.length() - 1] != '/')
+std::string Utils::readFile(const std::string& fileName,
+                     Response& response,
+                     Clients& client,
+                     int code)
+{
+    int respCode = response.getResponseCode();
+    if (respCode != 0 && respCode != 200 && respCode != -1)
+        return returnErrorPages(response, respCode, client);
+
+    struct stat st;
+    if (stat(fileName.c_str(), &st) == 0 && S_ISDIR(st.st_mode)) {
+        const std::string& pureLink = response.getPureLink();
+        if (pureLink.empty() || pureLink[pureLink.size() - 1] != '/')
             return returnErrorPages(response, MOVEDPERMANENTLY, client);
+
         std::string indexPath = fileName + "/index.html";
-        if (access(indexPath.c_str(), R_OK) == 0)
-        {
-            std::ifstream indexFile(indexPath.c_str());
-            if (indexFile)
-            {
-                std::stringstream buffer;
-                buffer << indexFile.rdbuf();
+        if (access(indexPath.c_str(), R_OK) == 0) {
+            std::string body;
+            if (readFileToString(indexPath, body)) {
                 response.setResponseCode(code);
-                return buffer.str();
+                return body;
             }
         }
-        else if (response.getAutoIndex())
-            return Utils::generateAutoIndex(fileName, client.response.getFile(), client);
-        else
-            return returnErrorPages(response, 403, client);
+        if (response.getAutoIndex()) {
+            return generateAutoIndex(fileName, client.response.getFile(), client);
+        }
+        return returnErrorPages(response, FORBIDDEN, client);
     }
-    else
-    {
-        if (!client.response.getCgiPath().empty()
-        && !client.server.cgi_extensioninserver.empty())
+    const Server& srv = client.server;
+
+    if (!client.response.getCgiPath().empty() && !srv.cgi_extensioninserver.empty()) {
+        if (access(srv.cgi_pathinserver.c_str(), X_OK) != 0
+         || access(fileName.c_str(), F_OK) != 0
+         || access(fileName.c_str(), R_OK) != 0)
         {
-            if (access(client.server.cgi_pathinserver.c_str(), X_OK) != 0)
-                return returnErrorPages(response, INTERNALSERVERERROR, client);
-            else if (access(fileName.c_str(), F_OK) != 0)
-                return returnErrorPages(response, FORBIDDEN, client);
-            else if (access(fileName.c_str(), R_OK) != 0) // python çalıştırması için R_OK yetiyor x_ok düşünülür!!
-                return returnErrorPages(response, FORBIDDEN, client);
-            else if (access(fileName.c_str(), X_OK) != 0)
-                return returnErrorPages(response, FORBIDDEN, client);
-            if (fileName.find(client.server.cgi_extensioninserver) == std::string::npos)
-                return returnErrorPages(response, INTERNALSERVERERROR, client);
-            response.setisCGI(true);
-            return "";
+            return returnErrorPages(response,
+                    access(srv.cgi_pathinserver.c_str(), X_OK) != 0
+                    ? INTERNALSERVERERROR : NOTFOUND,
+                    client);
         }
-        std::ifstream file(fileName.c_str());
-        if (file)
-        {
-            std::stringstream buffer;
-            buffer << file.rdbuf();
-            response.setResponseCode(code);
-            return buffer.str();
-        }
+        if (access(fileName.c_str(), X_OK) != 0)
+            return returnErrorPages(response, FORBIDDEN, client);
+
+        if (fileName.find(srv.cgi_extensioninserver) == std::string::npos)
+            return returnErrorPages(response, INTERNALSERVERERROR, client);
+        response.setisCGI(true);
+        return "";
+    }
+    std::string body;
+    if (readFileToString(fileName, body)) {
+        response.setResponseCode(code);
+        return body;
     }
     return returnErrorPages(response, NOTFOUND, client);
 }
+
 
 bool Utils::wait_with_timeout(pid_t pid, int timeout_seconds) {
     std::time_t start = std::time(NULL);
@@ -349,7 +366,6 @@ void Utils::parseContent(std::string &buffer, Clients &client)
         response.setFile(getFileName(request, client), client.server);
         response.setcontentType(get_content_type(request));
         response.setContentLength(getContentLenght(request, response));
-        std::cout << "response code " << response.getResponseCode() << std::endl;
         if (response.getContentLength() > client.maxBodySize)
         {
             response.setContent(returnErrorPages(response, ENTITYTOOLARGE, client));
