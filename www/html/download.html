@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dosya Yükleme</title>
+    <title>Dosya İndirme</title>
     <style>
         * {
             margin: 0;
@@ -75,12 +75,13 @@
 <body>
 
     <div class="container">
-        <h2>Dosya Silme Sayfası</h2>
+        <h2>Dosya İndirme Sayfası</h2>
         <label>İndirmek istediğiniz dosya adı:</label><br>
-        <form action="/www/cgi-bin/download.py" method="get"></form>
-        <input type="text" id="_del" name="download_field" required><br><br>
-        <input type="submit" value="Dosyayı Sil">
-        <a href="/" class="button_2">Ana Sayfaya Dön</a>
+        <form action="/www/cgi-bin/download.cgi" method="get">
+            <input type="text" id="_del" name="download_field" required><br><br>
+            <input type="submit" value="Dosyayı İndir">
+        </form>
+            <a href="/" class="button_2">Ana Sayfaya Dön</a>
     </div>
 
 </body>

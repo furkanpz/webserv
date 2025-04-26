@@ -8,7 +8,7 @@ from urllib.parse import quote
 UPLOAD_DIR = "./uploads"
 
 form = cgi.FieldStorage()
-
+print("BABA MERABA")
 filename = form.getvalue("download_field")
 header = None
 response = """
@@ -85,7 +85,7 @@ if filename:
     path = os.path.join(UPLOAD_DIR, filename)
     if os.path.exists(path):
         header += "Content-type: application/octet-stream\r\n"
-        header += f"Content-Disposition: attachment; filename={quote(filename)}\r\n"
+        header += f"Content-Disposition: attachment; filename={filename}\r\n"
         with open(path, 'rb') as f:
             print(f.read()) 
 else:

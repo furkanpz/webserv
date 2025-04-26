@@ -45,8 +45,8 @@ static const std::string methods[3] = {"GET", "POST", "DELETE"};
 #define TIMEOUT 408
 #define LENGTHREQUIRED 411
 #define ENTITYTOOLARGE 413
+#define UNSUPPORTED_MEDIA_TYPE 415
 #define INTERNALSERVERERROR 500
-
 
 #define MAX_INT 2147483647
 

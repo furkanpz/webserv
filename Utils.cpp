@@ -347,6 +347,16 @@ void Utils::getBufferFormData(std::string &buffer, Clients &client)
         if (buffer.find("\r\n\r\n") != std::string::npos)
             client.response.setFormData(buffer.substr(buffer.find("\r\n\r\n") + 4));
     }
+    else if (contentType.find("text/plain") != std::string::npos) {
+        size_t pos = buffer.find("\r\n\r\n");
+        if (pos != std::string::npos)
+            client.response.setFormData(buffer.substr(pos + 4));
+        std::cout << client.response.getFormData() << std::endl;
+    }
+    else {
+        client.response.setResponseCode(UNSUPPORTED_MEDIA_TYPE);
+        client.response.setContent(returnErrorPages(client.response, UNSUPPORTED_MEDIA_TYPE, client));
+    }
 }
 
 void Utils::parseContent(std::string &buffer, Clients &client)

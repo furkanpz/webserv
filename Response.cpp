@@ -204,6 +204,8 @@ std::string Response::getResponseCodestr(void) const
         return "411 Length Required";
     else if (this->responseCode == 413)
         return "413 Request Entity Too Large";
+    else if (this->responseCode == 415)
+        return "415 Unsupported Media Type";
     else if (this->responseCode == 500)
         return "500 Internal Server Error";
     else

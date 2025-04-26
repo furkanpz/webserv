@@ -92,6 +92,7 @@ void WebServer::CGIHandle(Clients &client)
         else
         {
             client.response.setResponseCode(TIMEOUT);
+            client.response.setContent(Utils::returnErrorPages(client.response, TIMEOUT, client));
             client.writeBuffer = Utils::returnResponseHeader(client);
         }
     }
@@ -309,7 +310,7 @@ void WebServer::start() {
         int events = poll(pollFds.data(), pollFds.size(), -1);
         if (events < 0) throw ServerExcp("Poll Error");
 
-        for (size_t i = 0; i < pollFds.size(); i++) {
+        for (int i = pollFds.size() - 1; i >= 0; i--) {
             short re = pollFds[i].revents;
             if (re & (POLLHUP | POLLERR | POLLRDHUP)) {
                 if (re & POLLERR)
