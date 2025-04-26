@@ -2,6 +2,7 @@
 #include "WebServer.hpp"
 
 WebServer *g_server = NULL;
+std::vector<Server> g_servers;
 
 void ServerKill(int sig) {
     (void) sig;
@@ -15,19 +16,18 @@ int main(int ac, char **av)
     if (ac == 2)
     {
         try {
-            std::vector<Server> servers = parse_config(av[1]);
+            g_servers = parse_config(av[1]);
             
-            // print_servers(servers);
-            if (servers.size() == 0)
+            // print_servers(g_servers);
+            if (g_servers.size() == 0)
             {
                 std::cerr << "No server found in the configuration file." << std::endl;
                 return (1);
             }
-            WebServer *serv  = new WebServer(servers);
-            g_server = serv;
+            g_server = new WebServer(g_servers);
             signal(SIGINT, ServerKill);
             signal(SIGPIPE, SIG_IGN);
-            serv->start();
+            g_server->start();
         }
         catch (std::exception &e)
         {

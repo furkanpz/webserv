@@ -83,22 +83,16 @@ void WebServer::CGIHandle(Clients &client)
         bool finished = Utils::wait_with_timeout(pid, 2);
         if (finished)
         {
-            std::string header;
-            header += "HTTP/1.1 " + client.response.getResponseCodestr() + "\r\n";
-            header += "Content-Type: text/html\r\nContent-Length: ";
             while ((bytesRead = read(fd_out[0], buffer, sizeof(buffer))) > 0)
                 response.append(buffer, bytesRead);
-            std::ostringstream oss;
-            oss << response.size();
-            header += oss.str() + "\r\n\r\n";
             close(fd_out[0]);
-            client.writeBuffer  = header + response;
+            client.response.setContent(response);
+            client.writeBuffer = Utils::returnResponseHeader(client);
         }
         else
         {
             client.response.setResponseCode(TIMEOUT);
-            std::string response = Utils::returnResponseHeader(client);
-            client.writeBuffer  = response;
+            client.writeBuffer = Utils::returnResponseHeader(client);
         }
     }
 }
@@ -164,6 +158,19 @@ bool WebServer::CheckResponse(Clients &client, std::string &headers)
     return false;
 }
 
+
+void printError(int fd) // DEBUG
+{
+    int err = 0;
+    socklen_t len = sizeof(err);
+    if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &len) == 0) {
+    if (err != 0) {
+        // burada err errno gibi bir hata kodudur
+        fprintf(stderr, "DEBUG - Socket error: %s\n", strerror(err));
+    }
+}
+}
+
 void WebServer::ServerResponse(Clients &client)
 {
     std::string headers;
@@ -184,7 +191,11 @@ void WebServer::ServerResponse(Clients &client)
             }
             else 
             {
-                if (bytesRead == -1) return;
+               if (bytesRead == -1)
+            {
+                std::cout << "RECV ERROR " << strerror(errno) << std::endl; // DEBUG
+                return;
+            }
                 break;
             }
 
@@ -192,8 +203,7 @@ void WebServer::ServerResponse(Clients &client)
     }
     if (CheckResponse(client, headers))
         return;
-    std::string response  = Utils::returnResponseHeader(client);
-    client.writeBuffer  = response;
+    client.writeBuffer = Utils::returnResponseHeader(client);;
 }
 
 
@@ -229,12 +239,17 @@ void WebServer::readFormData(int i)
                 Utils::parseChunked(clients[i], clients[i].formData, 1); 
         }
         else
+        {
+            if (bytesRead == -1)
+            {
+                std::cout << "RECV ERROR " << strerror(errno) << std::endl; // DEBUG
+            }
             break;
+        }
     }
     if (clients[i].response.getResponseCode() == ENTITYTOOLARGE)
     {
-        std::string response = Utils::returnResponseHeader(clients[i]);
-        clients[i].writeBuffer  = response;
+        clients[i].writeBuffer = Utils::returnResponseHeader(clients[i]);
         clients[i].events = REQUEST;
         pollFds[i].events |= POLLOUT;
     }
@@ -296,9 +311,9 @@ void WebServer::start() {
 
         for (size_t i = 0; i < pollFds.size(); i++) {
             short re = pollFds[i].revents;
-            if (re & (POLLHUP | POLLERR)) {
+            if (re & (POLLHUP | POLLERR | POLLRDHUP)) {
                 if (re & POLLERR)
-                    std::cerr << "POLLERR" << std::endl;
+                    printError(pollFds[i].fd);
                 closeClient(i);
                 continue;
             }

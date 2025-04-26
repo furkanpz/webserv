@@ -22,6 +22,8 @@
 #include <dirent.h>
 #include "config.hpp"
 
+#include <sys/wait.h>
+#include <algorithm>
 
 static const std::string methods[3] = {"GET", "POST", "DELETE"};
 
