@@ -12,7 +12,6 @@ if not os.path.exists(UPLOAD_DIR):
 
 form = cgi.FieldStorage()
 
-sleep(10)
 
 response = """
 <html lang="en">

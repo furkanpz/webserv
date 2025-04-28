@@ -62,7 +62,7 @@ void WebServer::CGIHandle(Clients &client)
         std::string cgiPath = client.response.getCgiPath();
         const char *argv[] = { cgiPath.c_str() ,file.c_str(), NULL};
         execve(cgiPath.c_str(), const_cast<char *const *>(argv), environ);
-        std::cerr << "ERROR " << std::endl;
+        std::cerr << "EXECVE ERROR" << std::endl;
         exit(1);
     }
     else {
@@ -159,19 +159,6 @@ bool WebServer::CheckResponse(Clients &client, std::string &headers)
     return false;
 }
 
-
-void printError(int fd) // DEBUG
-{
-    int err = 0;
-    socklen_t len = sizeof(err);
-    if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &len) == 0) {
-    if (err != 0) {
-        // burada err errno gibi bir hata kodudur
-        fprintf(stderr, "DEBUG - Socket error: %s\n", strerror(err));
-    }
-}
-}
-
 void WebServer::ServerResponse(Clients &client)
 {
     std::string headers;
@@ -192,11 +179,8 @@ void WebServer::ServerResponse(Clients &client)
             }
             else 
             {
-               if (bytesRead == -1)
-            {
-                std::cout << "RECV ERROR " << strerror(errno) << std::endl; // DEBUG
-                return;
-            }
+                if (bytesRead == -1)
+                    return;
                 break;
             }
 
@@ -206,7 +190,6 @@ void WebServer::ServerResponse(Clients &client)
         return;
     client.writeBuffer = Utils::returnResponseHeader(client);;
 }
-
 
 void WebServer::addClient(int fd, short events, size_t i)
 {
@@ -240,13 +223,7 @@ void WebServer::readFormData(int i)
                 Utils::parseChunked(clients[i], clients[i].formData, 1); 
         }
         else
-        {
-            if (bytesRead == -1)
-            {
-                std::cout << "RECV ERROR " << strerror(errno) << std::endl; // DEBUG
-            }
             break;
-        }
     }
     if (clients[i].response.getResponseCode() == ENTITYTOOLARGE)
     {
@@ -313,8 +290,6 @@ void WebServer::start() {
         for (int i = pollFds.size() - 1; i >= 0; i--) {
             short re = pollFds[i].revents;
             if (re & (POLLHUP | POLLERR | POLLRDHUP)) {
-                if (re & POLLERR)
-                    printError(pollFds[i].fd);
                 closeClient(i);
                 continue;
             }

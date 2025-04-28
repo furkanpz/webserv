@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dosya Yükleme</title>
+    <title>Dosya Silme</title>
     <style>
         * {
             margin: 0;
@@ -33,69 +33,119 @@
             margin-bottom: 20px;
         }
 
-        .upload-btn {
-            display: inline-block;
-            background-color: #4CAF50;
-            color: white;
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .upload-btn, button, .button_2 {
             padding: 10px 20px;
+            font-size: 16px;
+            border: none;
             border-radius: 5px;
             cursor: pointer;
-            font-size: 16px;
+            color: white;
+        }
+
+        .upload-btn {
+            background-color: #4CAF50;
             margin-bottom: 20px;
         }
 
-        .upload-btn:hover {
-            background-color: #45a049;
-        }
-
         button {
-            padding: 10px 20px;
             background-color: #007BFF;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        .button_2 {
-            padding: 10px 20px;
-            background-color: #ff2600;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
+            margin-bottom: 10px;
         }
 
         button:hover {
             background-color: #0056b3;
         }
+
+        .button_2 {
+            background-color: #ff2600;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .button_2:hover {
+            background-color: #cc1f00;
+        }
+
+        .message {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
     </style>
 </head>
-<script>
-    function deleteFile() {
-        const filename = document.getElementById("_del").value;
-        fetch("/cgi-bin/delete.cgi", {
-            method: "DELETE",
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            body: "filename=" + encodeURIComponent(filename)
-        })
-        .then(res => res.text())
-        .then(html => document.body.innerHTML = html);
-    }
-    </script>
-    
 <body>
 
     <div class="container">
         <h2>Dosya Silme Sayfası</h2>
         <label>Silmek istediğiniz dosya adı:</label><br>
-        <input type="text" id="_del" name="filename" required><br><br>
-        <input type="submit" onclick="deleteFile()" value="Dosyayı Sil">
+        <input type="text" id="_del" name="filename" required><br>
+
+        <button type="button" onclick="deleteFile()">Dosyayı Sil</button>
         <a href="/" class="button_2">Ana Sayfaya Dön</a>
+
+        <div id="messageBox" class="message"></div>
     </div>
+
+    <script>
+        function showMessage(text, type) {
+            const box = document.getElementById('messageBox');
+            box.textContent = text;
+            box.className = 'message ' + type;
+            box.style.display = 'block';
+        }
+
+        function deleteFile() {
+            const filename = document.getElementById("_del").value;
+            if (!filename) {
+                showMessage("Lütfen bir dosya adı girin.", "error");
+                return;
+            }
+
+            fetch("/cgi-bin/delete.cgi", {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: "filename=" + encodeURIComponent(filename)
+            })
+            .then(res => res.text().then(text => ({status: res.status, body: text})))
+            .then(({status, body}) => {
+                if (status === 200) {
+                    showMessage("Dosya başarıyla silindi.", "success");
+                } else {
+                    showMessage("Dosya silinirken bir hata oluştu: " + body, "error");
+                }
+            })
+            .catch(error => {
+                console.error(error);
+                showMessage("Sunucuya bağlanırken hata oluştu.", "error");
+            });
+        }
+    </script>
 
 </body>
 </html>

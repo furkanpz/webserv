@@ -1,3 +1,4 @@
+
 #include "webserv.hpp"
 #include "Utils.hpp"
 
@@ -41,9 +42,10 @@ std::string Utils::Spacetrim(const std::string &s)
 
 std::string Utils::returnResponseHeader(Clients &client) {
     std::string header = "HTTP/1.1 ";
+    int responseCode = client.response.getResponseCode();
     header += client.response.getResponseCodestr() + "\r\n";
     header += "Content-Type: text/html\r\n";
-    if (client.response.getResponseCode() == 405)
+    if (responseCode == NOTALLOWED)
     {
         header += "Allow: ";
         std::vector<std::string> methods = client.response.getMethods();
@@ -55,22 +57,27 @@ std::string Utils::returnResponseHeader(Clients &client) {
         }
         header += "\r\n";
     }
-    if (client.response.getResponseCode() == 301)
+    if (responseCode == MOVEDPERMANENTLY)
         header += "Location: " + client.response.getPureLink() + "/\r\n";
-    else if (client.response.getResponseCode() == 302)
-        header += "Location: " + client.response.getRedirect() + "/\r\n";
-    if (!client.response.getAddHeader().empty())
-        header += client.response.getAddHeader();  
-    std::cout << "ADD_HEADER = " << client.response.getAddHeader() << std::endl;
-    if (!client.response.getAddHeader().empty())
+    else if (responseCode == FOUND)
+        header += "Location: " + client.response.getRedirect() + "/\r\n";  
+    if (!client.response.getAddHeader().empty() && responseCode == 200)
     {
-        std::string file_name = client.response.getFile(); 
-        while (file_name.find("/"))
         const std::string &add_header = client.response.getAddHeader();
         if (add_header.find("attachment") != std::string::npos)
         {
-            header += add_header + ";  filename=\"";
+            std::string file_name = client.response.getFile();
+            size_t i = 0;
+            size_t j = file_name.find("/"); 
+            while (j != std::string::npos)
+            {   
+                i = j;
+                j = file_name.find("/", j + 1);
+            }
+            header += add_header + "; filename=\"" + file_name.substr(i + 1) + "\" \r\n";
         }
+        else 
+            header += add_header + "\r\n";
         
     }
     header += "Connection: keep-alive\r\n";
@@ -365,7 +372,6 @@ void Utils::getBufferFormData(std::string &buffer, Clients &client)
         size_t pos = buffer.find("\r\n\r\n");
         if (pos != std::string::npos)
             client.response.setFormData(buffer.substr(pos + 4));
-        std::cout << client.response.getFormData() << std::endl;
     }
     else {
         client.response.setResponseCode(UNSUPPORTED_MEDIA_TYPE);
@@ -471,7 +477,7 @@ std::string Utils::generateAutoIndex(const std::string& path, const std::string&
     html << "<body><h1>Index of " << requestPath << "</h1><ul>\n";
 
     dir = opendir(path.c_str());
-    if (!dir) { // DEBUG 
+    if (!dir) {
         html << "<p>Failed to open directory</p></body></html>";
         return html.str();
     }
@@ -488,7 +494,7 @@ std::string Utils::generateAutoIndex(const std::string& path, const std::string&
             name += "/";
         }
 
-        html << "<li><a href=\"" << client.response.getPureLink() +  name << "\" download>" << name << "</a></li>\n";
+        html << "<li><a href=\"" << client.response.getPureLink() +  name << "\">" << name << "</a></li>\n";
     }
 
     closedir(dir);

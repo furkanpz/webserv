@@ -33,42 +33,67 @@
             margin-bottom: 20px;
         }
 
-        .upload-btn {
-            display: inline-block;
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin-top: 10px;
             margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
         }
 
-        .upload-btn:hover {
-            background-color: #45a049;
+        .buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
         }
 
-        button {
+        .button, .button_2 {
+            display: inline-block;
             padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            color: white;
+        }
+
+        .button {
             background-color: #007BFF;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        .button_2 {
-            padding: 10px 20px;
-            background-color: #ff2600;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
         }
 
-        button:hover {
+        .button:hover {
             background-color: #0056b3;
+        }
+
+        .button_2 {
+            background-color: #ff2600;
+        }
+
+        .button_2:hover {
+            background-color: #cc1f00;
+        }
+
+        .message {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
         }
     </style>
 </head>
@@ -77,12 +102,63 @@
     <div class="container">
         <h2>Dosya İndirme Sayfası</h2>
         <label>İndirmek istediğiniz dosya adı:</label><br>
-        <form action="/www/cgi-bin/download.cgi" method="get">
-            <input type="text" id="_del" name="download_field" required><br><br>
-            <input type="submit" value="Dosyayı İndir">
-        </form>
+        <input type="text" id="_del" name="download_field" required><br>
+        
+        <div class="buttons">
+            <button type="button" class="button" onclick="redirectPath()">Dosyayı İndir</button>
             <a href="/" class="button_2">Ana Sayfaya Dön</a>
+        </div>
+
+        <div id="messageBox" class="message"></div>
     </div>
+
+    <script>
+        function showMessage(text, type) {
+            const box = document.getElementById('messageBox');
+            box.textContent = text;
+            box.className = 'message ' + type;
+            box.style.display = 'block';
+        }
+
+        function redirectPath() {
+            const input = document.getElementById("_del");
+            if (!input.value) {
+                showMessage("Lütfen bir dosya adı girin.", "error");
+                return;
+            }
+
+            let i = 0;
+            let counter = 0;
+            let slashIndex = 0;
+            let path = window.location.pathname;
+            while (path[i]) {
+                if (path[i] === '/')
+                    counter++;
+                if (counter === 3)
+                    slashIndex = i;
+                i++;
+            }
+            let rawPath = path.substr(0, slashIndex);
+            let last = rawPath.endsWith("/") ? rawPath : rawPath + "/";
+            let filePath = last + "uploads/" + input.value;
+
+            fetch(filePath, { method: 'GET' })
+                .then(response => {
+                    if (response.status === 200) {
+                        showMessage("İndirme başladı.", "success");
+                        window.location.href = filePath;
+                    } else if (response.status === 404) {
+                        showMessage("Hata: Dosya bulunamadı.", "error");
+                    } else {
+                        showMessage("Bilinmeyen bir hata oluştu.", "error");
+                    }
+                })
+                .catch(error => {
+                    showMessage("Sunucuya bağlanırken hata oluştu.", "error");
+                    console.error(error);
+                });
+        }
+    </script>
 
 </body>
 </html>

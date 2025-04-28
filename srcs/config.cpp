@@ -14,7 +14,7 @@ std::vector<Server> parse_config(const std::string& filename)
 
     if (!file.is_open())
 	{
-        std::cerr << "nginx: [emerg] could not open configuration file \"" << filename << "\": No such file or directory" << std::endl;
+        std::cerr << "webserv: could not open configuration file \"" << filename << "\": No such file or directory" << std::endl;
         return servers;
     }
 
@@ -58,14 +58,14 @@ std::vector<Server> parse_config(const std::string& filename)
 
 			if (path_end != std::string::npos && path_end < line.length() - 1 && line[path_end + 1] == '}')
     		{
-    		    std::cerr << "nginx: [emerg] unexpected \"}\" in " << filename << ":" << line_number << std::endl;
+    		    std::cerr << "webserv: unexpected \"}\" in " << filename << ":" << line_number << std::endl;
     		    file.close();
     		    servers.clear();
     		    return servers;
     		}
         	if (path_start == std::string::npos || path_end == std::string::npos)
 			{
-                std::cerr << "nginx: [emerg] invalid location syntax in " << filename << ":" << line_number << std::endl;
+                std::cerr << "webserv: invalid location syntax in " << filename << ":" << line_number << std::endl;
                 file.close();
                 servers.clear();
                 return servers;
@@ -87,52 +87,52 @@ std::vector<Server> parse_config(const std::string& filename)
             std::stringstream ss(line);
             std::string key;
             ss >> key;
-        if (key == "listen")
-		{
-    		std::string port_str;
-    		ss >> port_str;
-    		port_str = port_str.substr(0, port_str.find(";"));
-    		std::stringstream port_ss(port_str);
-    		port_ss >> current_server.port;
-    		if (port_ss.fail() || !port_ss.eof())
-			{
-    		    std::cerr << "nginx: [emerg] invalid port in  \"" << port_str << "\" (line " << line_number << ")" << std::endl;
-    		    file.close();
-    		    servers.clear();
-    		    return servers;
-    		}
-    		std::string extra;
-    		if (ss >> extra)
-			{
-    		    std::cerr << "nginx: [emerg] invalid number of arguments in \"listen\" directive in (line " << line_number << ")" << std::endl;
-    		    file.close();
-    		    servers.clear();
-    		    return servers;
-    		}
-    		if (current_server.port <= 0 || current_server.port > 65535)
-			{
-    		    std::cerr << "nginx: [emerg] invalid port number in  \"" << current_server.port << "\" (line " << line_number << ")" << std::endl;
-    		    file.close();
-    		    servers.clear();
-    		    return servers;
-    		}
-		}
-        else if (key == "host")
-		{
+            if (key == "listen")
+		    {
+    	    	std::string port_str;
+    	    	ss >> port_str;
+    	    	port_str = port_str.substr(0, port_str.find(";"));
+    	    	std::stringstream port_ss(port_str);
+    	    	port_ss >> current_server.port;
+    	    	if (port_ss.fail() || !port_ss.eof())
+		    	{
+    	    	    std::cerr << "webserv: invalid port in  \"" << port_str << "\" (line " << line_number << ")" << std::endl;
+    	    	    file.close();
+    	    	    servers.clear();
+    	    	    return servers;
+    	    	}
+    	    	std::string extra;
+    	    	if (ss >> extra)
+		    	{
+    	    	    std::cerr << "webserv: invalid number of arguments in \"listen\" directive in (line " << line_number << ")" << std::endl;
+    	    	    file.close();
+    	    	    servers.clear();
+    	    	    return servers;
+    	    	}
+    	    	if (current_server.port <= 0 || current_server.port > 65535)
+		    	{
+    	    	    std::cerr << "webserv: invalid port number in  \"" << current_server.port << "\" (line " << line_number << ")" << std::endl;
+    	    	    file.close();
+    	    	    servers.clear();
+    	    	    return servers;
+    	    	}
+		    }
+            else if (key == "host")
+		    {
                 std::string host;
                 ss >> host;
                 host = host.substr(0, host.find(";"));
                 std::string extra;
                 if (ss >> extra)
-				{
-                    std::cerr << "nginx: [emerg] invalid number of arguments in \"host\" directive in " << filename << ":" << line_number << std::endl;
+		    	{
+                    std::cerr << "webserv: invalid number of arguments in \"host\" directive in " << filename << ":" << line_number << std::endl;
                     file.close();
                     servers.clear();
                     return servers;
                 }
                 if (host.empty() || !is_valid_ip(host))
-				{
-                    std::cerr << "nginx: [emerg] invalid host in \"host\" directive in " << filename << ":" << line_number << std::endl;
+		    	{
+                    std::cerr << "webserv: invalid host in \"host\" directive in " << filename << ":" << line_number << std::endl;
                     file.close();
                     servers.clear();
                     return servers;
@@ -140,12 +140,12 @@ std::vector<Server> parse_config(const std::string& filename)
                 current_server.host = host;
             }
             else if (key == "server_name")
-			{
+		    {
                 std::string name;
                 while (ss >> name)
-				{
+		    	{
                     if (name.find(";") != std::string::npos)
-					{
+		    		{
                         name = name.substr(0, name.find(";"));
                         current_server.server_names.push_back(name);
                         break;
@@ -153,96 +153,94 @@ std::vector<Server> parse_config(const std::string& filename)
                     current_server.server_names.push_back(name);
                 }
             }
-			else if (key == "client_max_body_size") {
-			    std::string size;
-			    ss >> std::ws;
-			    std::getline(ss, size, ';');
-			    size_t size_first = size.find_first_not_of(" \t");
-			    size_t size_last = size.find_last_not_of(" \t");
-
-			    if (size_first != std::string::npos && size_last != std::string::npos)
-			        size = size.substr(size_first, size_last - size_first + 1);
-				else
-			        size.clear();
-			    if (size.empty())
-				{
-			        std::cerr << "nginx: [emerg] invalid value \"\" in \"client_max_body_size\" directive in "
-			                  << filename << ":" << line_number << std::endl;
-			        file.close();
-			        servers.clear();
-			        return servers;
-			    }
-
-			    unsigned long value = 0;
-			    char* endptr = 0;
-			    std::string original_size = size;
-			    char last = size[size.length() - 1];
-
-			    if (last == 'M' || last == 'm')
-				{
-			        size.erase(size.length() - 1);
-			        value = std::strtoul(size.c_str(), &endptr, 10);
-			        if (endptr != size.c_str() && *endptr == '\0' && value > 0)
-			            value *= 1024 * 1024;
-			    }
-			    else if (last == 'K' || last == 'k')
-				{
-			        size.erase(size.length() - 1);
-			        value = std::strtoul(size.c_str(), &endptr, 10);
-			        if (endptr != size.c_str() && *endptr == '\0' && value > 0)
-			            value *= 1024;
-			    }
-			    else if (last == 'G' || last == 'g')
-				{
-			        size.erase(size.length() - 1);
-			        value = std::strtoul(size.c_str(), &endptr, 10);
-			        if (endptr != size.c_str() && *endptr == '\0' && value > 0)
-			            value *= 1024 * 1024 * 1024;
-			    }
-			    else
-			        value = std::strtoul(size.c_str(), &endptr, 10);
-			    if (endptr == size.c_str() || *endptr != '\0' || value == 0)
-				{
-			        std::cerr << "nginx: [emerg] invalid value \"" << original_size << "\" in \"client_max_body_size\" directive in "
-			                  << filename << ":" << line_number << std::endl;
-			        file.close();
-			        servers.clear();
-			        return servers;
-			    }
-			    current_server.client_max_body_size = value;
-			}
+		    else if (key == "client_max_body_size")
+            {
+		        std::string size;
+		        ss >> std::ws;
+		        std::getline(ss, size, ';');
+		        size_t size_first = size.find_first_not_of(" \t");
+		        size_t size_last = size.find_last_not_of(" \t");
+		        if (size_first != std::string::npos && size_last != std::string::npos)
+		            size = size.substr(size_first, size_last - size_first + 1);
+		    	else
+		            size.clear();
+		        if (size.empty())
+		    	{
+		            std::cerr << "webserv: invalid value \"\" in \"client_max_body_size\" directive in "
+		                      << filename << ":" << line_number << std::endl;
+		            file.close();
+		            servers.clear();
+		            return servers;
+		        }
+		        unsigned long value = 0;
+		        char* endptr = 0;
+		        std::string original_size = size;
+		        char last = size[size.length() - 1];
+		        if (last == 'M' || last == 'm')
+		    	{
+		            size.erase(size.length() - 1);
+		            value = std::strtoul(size.c_str(), &endptr, 10);
+		            if (endptr != size.c_str() && *endptr == '\0' && value > 0)
+		                value *= 1024 * 1024;
+		        }
+		        else if (last == 'K' || last == 'k')
+		    	{
+		            size.erase(size.length() - 1);
+		            value = std::strtoul(size.c_str(), &endptr, 10);
+		            if (endptr != size.c_str() && *endptr == '\0' && value > 0)
+		                value *= 1024;
+		        }
+		        else if (last == 'G' || last == 'g')
+		    	{
+		            size.erase(size.length() - 1);
+		            value = std::strtoul(size.c_str(), &endptr, 10);
+		            if (endptr != size.c_str() && *endptr == '\0' && value > 0)
+		                value *= 1024 * 1024 * 1024;
+		        }
+		        else
+		            value = std::strtoul(size.c_str(), &endptr, 10);
+		        if (endptr == size.c_str() || *endptr != '\0' || value == 0)
+		    	{
+		            std::cerr << "webserv: invalid value \"" << original_size << "\" in \"client_max_body_size\" directive in "
+		                      << filename << ":" << line_number << std::endl;
+		            file.close();
+		            servers.clear();
+		            return servers;
+		        }
+		        current_server.client_max_body_size = value;
+		    }
             else if (key == "error_page")
-			{
+		    {
                 int code;
                 std::string path;
                 ss >> code >> path;
                 if (code < 100 || code > 599)
-				{
-                    std::cerr << "nginx: [emerg] invalid error_page code \"" << code << "\" in " << filename << ":" << line_number << std::endl;
+		    	{
+                    std::cerr << "webserv: invalid error_page code \"" << code << "\" in " << filename << ":" << line_number << std::endl;
                     file.close();
                     servers.clear();
                     return servers;
                 }
                 current_server.error_pages[code] = path.substr(0, path.find(";"));
             }
-			else if (key == "root")
-			{
-				std::string serverinroot;
-				ss >> serverinroot;
-				serverinroot = serverinroot.substr(0, serverinroot.find(";"));
-				if(in_location_block)
-				{
-					current_location.root = serverinroot;
-					if (current_location.path == "/")
-						current_server.rootLocation = current_server.locations.size();
-				}
-				else
-					current_server.serverinroot = serverinroot;
-			}
+		    else if (key == "root")
+		    {
+		    	std::string serverinroot;
+		    	ss >> serverinroot;
+		    	serverinroot = serverinroot.substr(0, serverinroot.find(";"));
+		    	if(in_location_block)
+		    	{
+		    		current_location.root = serverinroot;
+		    		if (current_location.path == "/")
+		    			current_server.rootLocation = current_server.locations.size();
+		    	}
+		    	else
+		    		current_server.serverinroot = serverinroot;
+		    }
             else if (in_location_block)
-			{
+		    {
                 if (key == "root")
-				{
+		    	{
                     std::string root;
                     ss >> root;
                     root = root.substr(0, root.find(";"));
@@ -254,7 +252,6 @@ std::vector<Server> parse_config(const std::string& filename)
                 {
                     std::string add_header;
                     std::string temp;
-
                     ss >> add_header;
                     if (add_header.find(";") == std::string::npos)
                     {
@@ -263,15 +260,15 @@ std::vector<Server> parse_config(const std::string& filename)
                     }
                     add_header = add_header.substr(0, add_header.find(";"));
                     current_location.add_header = add_header;
-                    
+
                 }
                 else if (key == "methods")
-				{
+		    	{
                     std::string method;
                     while (ss >> method)
-					{
+		    		{
                         if (method.find(";") != std::string::npos)
-						{
+		    			{
                             method = method.substr(0, method.find(";"));
                             current_location.methods.push_back(method);
                             break;
@@ -280,13 +277,13 @@ std::vector<Server> parse_config(const std::string& filename)
                     }
                 }
                 else if (key == "autoindex")
-				{
+		    	{
                     std::string value;
                     ss >> value;
                     value = value.substr(0, value.find(";"));
                     if (value != "on" && value != "off")
-					{
-                        std::cerr << "nginx: [emerg] invalid value \"" << value << "\" in \"autoindex\" directive in " << filename << ":" << line_number << std::endl;
+		    		{
+                        std::cerr << "webserv: invalid value \"" << value << "\" in \"autoindex\" directive in " << filename << ":" << line_number << std::endl;
                         file.close();
                         servers.clear();
                         return servers;
@@ -294,60 +291,46 @@ std::vector<Server> parse_config(const std::string& filename)
                     current_location.autoindex = (value == "on");
                 }
                 else if (key == "index")
-				{
+		    	{
                     std::string index;
                     ss >> index;
                     index = index.substr(0, index.find(";"));
                     current_location.index = index;
                 }
                 else if (key == "return")
-				{
+		    	{
                     std::string redirect;
                     ss >> redirect;
                     redirect = redirect.substr(0, redirect.find(";"));
                     current_location.redirect = redirect;
                 }
                 else if (key == "cgi_extension")
-				{
+		    	{
                     std::string ext;
                     ss >> ext;
                     ext = ext.substr(0, ext.find(";"));
                     current_location.cgi_extension = ext;
-					current_server.cgi_extensioninserver = ext;
+		    		current_server.cgi_extensioninserver = ext;
                 }
                 else if (key == "cgi_path")
-				{
+		    	{
                     std::string path;
                     ss >> path;
                     path = path.substr(0, path.find(";"));
                     current_location.cgi_path = path;
-					current_server.cgi_pathinserver = path;
-                }
-                else if (key == "upload_limit")
-				{
-                    std::string limit;
-                    ss >> limit;
-                    limit = limit.substr(0, limit.find("M"));
-                    current_location.upload_limit = std::atoi(limit.c_str()) * 1024 * 1024;
-                    if (current_location.upload_limit <= 0)
-					{
-                        std::cerr << "nginx: [emerg] invalid value \"" << limit << "M\" in \"upload_limit\" directive in " << filename << ":" << line_number << std::endl;
-                        file.close();
-                        servers.clear();
-                        return servers;
-                    }
+		    		current_server.cgi_pathinserver = path;
                 }
                 else
-				{
-                    std::cerr << "nginx: [emerg] unknown directive \"" << key << "\" in " << filename << ":" << line_number << std::endl;
+		    	{
+                    std::cerr << "webserv: unknown directive \"" << key << "\" in " << filename << ":" << line_number << std::endl;
                     file.close();
                     servers.clear();
                     return servers;
                 }
             }
             else
-			{
-                std::cerr << "nginx: [emerg] unknown directive \"" << key << "\" in " << filename << ":" << line_number << std::endl;
+		    {
+                std::cerr << "webserv: unknown directive \"" << key << "\" in " << filename << ":" << line_number << std::endl;
                 file.close();
                 servers.clear();
                 return servers;
@@ -356,7 +339,7 @@ std::vector<Server> parse_config(const std::string& filename)
     }
     if (in_server_block || in_location_block)
 	{
-        std::cerr << "nginx: [emerg] unexpected end of file, expecting \"}\" in " << filename << ":" << line_number << std::endl;
+        std::cerr << "webserv: unexpected end of file, expecting \"}\" in " << filename << ":" << line_number << std::endl;
         file.close();
         servers.clear();
         return servers;
@@ -369,8 +352,27 @@ std::vector<Server> parse_config(const std::string& filename)
     file.close();
 	if (servers.empty())
     {
-        std::cerr << "nginx: [emerg] no \"server\" directive found in " << filename << std::endl;
+        std::cerr << "webserv: no \"server\" directive found in " << filename << std::endl;
         return servers;
+    }
+
+    for (int i = 0; i < servers.size(); i++)
+    {
+        for (int x = 0; x < servers[i].locations.size(); x++)
+        {
+            for (int j = 0; j < servers[i].locations[x].methods.size(); j++)
+            {
+                if (servers[i].locations[x].methods[j] != "GET" && servers[i].locations[x].methods[j] != "POST" && servers[i].locations[x].methods[j] != "DELETE")
+                {
+                    std::cerr << "webserv: unexpected methods" << std::endl;
+                    file.close();
+                    servers.clear();
+                    return servers;
+                }
+            }
+            
+        }
+        
     }
     return servers;
 }
@@ -390,7 +392,7 @@ std::vector<std::string> parse_values_with_semicolon(std::stringstream& ss, cons
         }
         values.push_back(token);
     }
-    std::cerr << "nginx: [emerg] directive is not terminated by \";\" in " << filename << ":" << line_number << std::endl;
+    std::cerr << "webserv: directive is not terminated by \";\" in " << filename << ":" << line_number << std::endl;
     return std::vector<std::string>();
 }
 
@@ -404,7 +406,7 @@ bool check_braces(const std::string& filename)
 
     if (!file.is_open())
     {
-        std::cerr << "nginx: [emerg] could not open configuration file \"" << filename << "\": No such file or directory" << std::endl;
+        std::cerr << "webserv: could not open configuration file \"" << filename << "\": No such file or directory" << std::endl;
         return false;
     }
 
@@ -427,7 +429,7 @@ bool check_braces(const std::string& filename)
 
     if (open_braces != close_braces)
     {
-        std::cerr << "nginx: [emerg] mismatched braces in " << filename << ": " 
+        std::cerr << "webserv: mismatched braces in " << filename << ": " 
                   << open_braces << " opening braces, " << close_braces << " closing braces" << std::endl;
         return false;
     }
