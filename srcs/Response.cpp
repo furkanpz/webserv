@@ -87,30 +87,42 @@ void Response::setFile(std::string _file, Server &server)
         }
     }
 
-    const Location &loc = (locationIndex == -1) ? server.locations[server.rootLocation] : server.locations[locationIndex];
-
-    if (!loc.redirect.empty())
+    if (locationIndex == -1 && server.rootLocation == -1 && server.serverinroot.empty())
     {
-        redirect = loc.redirect;
-        responseCode = FOUND;
+        responseCode = INTERNALSERVERERROR;
         return;
     }
-    if (!loc.add_header.empty())
-        add_header = loc.add_header;
-
-    if (!loc.root.empty())
-        file += loc.root;
-    else if (!server.serverinroot.empty())
+    else if (locationIndex == -1 && server.rootLocation == -1 && !server.serverinroot.empty())
+    {
         file += server.serverinroot;
-    else
-    {
-        responseCode = NOTFOUND;
-        return;
+        _methods.push_back("GET"); _methods.push_back("POST"); _methods.push_back("DELETE");
     }
+    else if (locationIndex != -1 || server.rootLocation != -1)
+    {
+        const Location &loc = (locationIndex == -1) ? server.locations[server.rootLocation] : server.locations[locationIndex];
 
-    autoIndex = loc.autoindex;
-    _methods = loc.methods;
+        if (!loc.redirect.empty())
+        {
+            redirect = loc.redirect;
+            responseCode = FOUND;
+            return;
+        }
+        if (!loc.add_header.empty())
+            add_header = loc.add_header;
 
+        if (!loc.root.empty())
+            file += loc.root;
+        else if (!server.serverinroot.empty())
+            file += server.serverinroot;
+        else
+        {
+            responseCode = NOTFOUND;
+            return;
+        }
+
+        autoIndex = loc.autoindex;
+        _methods = loc.methods;
+    }
     if (requestType != NONE)
     {
         std::string methodName = methods[MAX_INT - requestType];
@@ -121,7 +133,7 @@ void Response::setFile(std::string _file, Server &server)
     }
     else
         responseCode = NOTALLOWED;
-
+    std::cout << "file: " << file << std::endl;
     for (size_t i = matchedIndex + 1; i < parts.size(); ++i)
         file += "/" + parts[i];
 }

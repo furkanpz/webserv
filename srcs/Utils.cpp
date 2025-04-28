@@ -321,7 +321,7 @@ void Utils::parseChunked_FT(Clients &client, std::string &Body, int Type) {
     }
     if (Body.find("0\r\n\r\n") == std::string::npos) {
         client.formData.append(Body);
-        client.events = WAIT_FORM;
+        client.Events = WAIT_FORM;
     }
     else
     {
@@ -352,7 +352,7 @@ void Utils::doubleSeperator(std::string key, std::string &buffer, Clients &clien
         }
     }
     if (client.response.getFormData().length() != client.response.getContentLength())
-        client.events = WAIT_FORM;
+        client.Events = WAIT_FORM;
 }
 
 void Utils::getBufferFormData(std::string &buffer, Clients &client)
@@ -382,7 +382,7 @@ void Utils::parseContent(std::string &buffer, Clients &client)
 {
     std::string request(buffer);
     Response &response = client.response;
-    if (client.events == REQUEST && client.response.getRequestType() == NONE)
+    if (client.Events == REQUEST && client.response.getRequestType() == NONE)
     {
         if (request.find("DELETE ") == 0)
             response.setRequestType(DELETE);

@@ -32,6 +32,7 @@ std::vector<Server> parse_config(const std::string& filename)
             current_server.port = -1;
             current_server.host = "";
             current_server.client_max_body_size = 1 * 1024 * 1024;
+            current_server.rootLocation = -1;
             continue;
         }
         std::string block_end = "}";
@@ -400,7 +401,6 @@ bool check_braces(const std::string& filename)
 {
     std::ifstream file(filename.c_str());
     std::string tab_line;
-    int line_number = 0;
     int open_braces = 0;  
     int close_braces = 0;
 
@@ -412,7 +412,6 @@ bool check_braces(const std::string& filename)
 
     while (std::getline(file, tab_line))
     {
-        line_number++;
         std::string line = Utils::Spacetrim(tab_line);
         if (line.empty() || line[0] == '#')
             continue;

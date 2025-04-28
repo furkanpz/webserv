@@ -42,17 +42,17 @@ void WebServer::CGIHandle(Clients &client)
         close(fd_in[0]); close(fd_in[1]);
         return;
     }
-    else if (pid == 0)
+    int req = client.response.getRequestType();
+    if (pid == 0)
     {
-        if (client.response.getRequestType() == POST || client.response.getRequestType() == DELETE) {
+        if (req == POST || req == DELETE) {
             setenv("CONTENT_TYPE", client.response.getcontentType().c_str(), 1);
             setenv("CONTENT_LENGTH", Utils::intToString(client.response.getContentLength()).c_str(), 1);
         }
-        setenv("REQUEST_METHOD", methods[MAX_INT - client.response.getRequestType()].c_str(), 1);
+        setenv("REQUEST_METHOD", methods[MAX_INT - req].c_str(), 1);
         close(fd_out[0]);  
         dup2(fd_out[1], 1); 
         close(fd_out[1]);
-
 
         close(fd_in[1]); 
         dup2(fd_in[0], 0); 
@@ -61,41 +61,56 @@ void WebServer::CGIHandle(Clients &client)
         std::string file = client.response.getFile();
         std::string cgiPath = client.response.getCgiPath();
         const char *argv[] = { cgiPath.c_str() ,file.c_str(), NULL};
-        execve(cgiPath.c_str(), const_cast<char *const *>(argv), environ);
+        execve(argv[0], const_cast<char *const *>(argv), environ);
         std::cerr << "EXECVE ERROR" << std::endl;
         exit(1);
     }
-    else {
-        char        buffer[55555];
-        std::string response;
-        int         bytesRead;
 
-        close(fd_out[1]); 
-        close(fd_in[0]);
+    close(fd_out[1]); 
+    close(fd_in[0]);
 
-        if (client.response.getRequestType() == POST || client.response.getRequestType() == DELETE) 
-        {    
-            write(fd_in[1], client.response.getFormData().c_str(), client.response.getFormData().size()); // error dönme durumu kontrol et clienti şutla
-            if (client.response.getFormData().empty())
-                client.response.setResponseCode(BADREQUEST);
-        }
-        close(fd_in[1]); 
-        bool finished = Utils::wait_with_timeout(pid, 2);
-        if (finished)
-        {
-            while ((bytesRead = read(fd_out[0], buffer, sizeof(buffer))) > 0) // error dönme durumu kontrol et clienti şutla
-                response.append(buffer, bytesRead);
-            close(fd_out[0]);
-            client.response.setContent(response);
-            client.writeBuffer = Utils::returnResponseHeader(client);
-        }
-        else
-        {
-            client.response.setResponseCode(TIMEOUT);
-            client.response.setContent(Utils::returnErrorPages(client.response, TIMEOUT, client));
-            client.writeBuffer = Utils::returnResponseHeader(client);
+    bool errorHandle = false;
+    if (req == POST || req == DELETE) 
+    {
+        const std::string &data = client.response.getFormData();
+        if (data.empty()) {
+            client.response.setResponseCode(BADREQUEST);
+            errorHandle = true;
+        } else if (write(fd_in[1], data.c_str(), data.size()) < 0) {
+            client.response.setResponseCode(INTERNALSERVERERROR);
+            errorHandle = true;
         }
     }
+    
+    close(fd_in[1]);
+
+    if (!errorHandle) {
+        if (!Utils::wait_with_timeout(pid, 2)) {
+            client.response.setResponseCode(TIMEOUT);
+            errorHandle = true;
+        }
+    }
+    std::string output;
+    if (!errorHandle) {
+        char buffer[10240];
+        int n;
+        while ((n = read(fd_out[0], buffer, sizeof(buffer))) > 0)
+            output.append(buffer, n);
+        if (n < 0) {
+            client.response.setResponseCode(INTERNALSERVERERROR);
+            errorHandle = true;
+        }
+    }
+
+    close(fd_out[0]);
+
+    if (!errorHandle) {
+        client.response.setContent(output);
+    } else {
+        client.response.setContent(Utils::returnErrorPages(
+            client.response, client.response.getResponseCode(), client));
+    }
+    client.writeBuffer = Utils::returnResponseHeader(client);
 }
 
 void WebServer::ServersCreator(std::vector<Server> &servers)
@@ -146,12 +161,13 @@ bool WebServer::CheckResponse(Clients &client, std::string &headers)
 {
     if (headers.find("Expect: 100-continue") != std::string::npos) {
         std::string continueResponse = "HTTP/1.1 100 Continue\r\n\r\n";
-        send(client.fd, continueResponse.c_str(), continueResponse.size(), 0); // error dönme durumu kontrol et clienti şutla
+        if (send(client.fd, continueResponse.c_str(), continueResponse.size(), 0) <= 0)
+        { client.Events = EXITED; return true; }
     }
     Utils::parseContent(headers, client);
     if (client.response.getisCGI())
     {
-        if (client.events == WAIT_FORM)
+        if (client.Events == WAIT_FORM)
             return true;
         else
             return CGIHandle(client), true;
@@ -165,7 +181,7 @@ void WebServer::ServerResponse(Clients &client)
     char        buffer[10240] = {0};
     int         bytesRead;
 
-    if (client.events == REQUEST)
+    if (client.Events == REQUEST)
     {
         while (true) {
             bytesRead = recv(client.fd, buffer, sizeof(buffer) - 1, 0);
@@ -203,7 +219,6 @@ void WebServer::closeClient(int index) {
         return;
     close(fd);
     pollFds[index].fd = -1;
-    std::cout << "Client disconnected" << std::endl;
     clients.erase(clients.begin() + index);
     pollFds.erase(pollFds.begin() + index);
 }
@@ -214,7 +229,7 @@ void WebServer::readFormData(int i)
     while (true)
     {
         char buffer[10240];
-        int bytesRead = recv(clients[i].fd, buffer, sizeof(buffer), 0); // error durumu clienti şutla
+        int bytesRead = recv(clients[i].fd, buffer, sizeof(buffer), 0);
         if (bytesRead > 0) {
             clients[i].formData.append(buffer, bytesRead);
             if (tempChunk && clients[i].formData.find("0\r\n\r\n") != std::string::npos)
@@ -226,14 +241,14 @@ void WebServer::readFormData(int i)
     if (clients[i].response.getResponseCode() == ENTITYTOOLARGE)
     {
         clients[i].writeBuffer = Utils::returnResponseHeader(clients[i]);
-        clients[i].events = REQUEST;
+        clients[i].Events = REQUEST;
         pollFds[i].events |= POLLOUT;
     }
     else if (clients[i].response.getContentLength() == clients[i].formData.size()
         || tempChunk != clients[i].response.getIsChunked())
     {
         clients[i].response.setFormData(clients[i].formData);
-        clients[i].events = REQUEST;
+        clients[i].Events = REQUEST;
         if (clients[i].response.getisCGI())
             CGIHandle(clients[i]);
     }
@@ -271,7 +286,6 @@ void WebServer::client_send(int i) {
         }
     }
     else if (n == 0) {
-        std::cout << "Client SEND disconnected" << std::endl;
         closeClient(i);
     }
     else {
@@ -287,7 +301,9 @@ void WebServer::start() {
 
         for (int i = pollFds.size() - 1; i >= 0; i--) {
             short re = pollFds[i].revents;
-            if (re & (POLLHUP | POLLERR | POLLRDHUP)) {
+            Clients &Client = clients[i];
+
+            if (re & (POLLHUP | POLLERR)) {
                 closeClient(i);
                 continue;
             }
@@ -298,20 +314,21 @@ void WebServer::start() {
             }
 
             if (i > 0 && (re & POLLIN)) {
-                if (clients[i].events == WAIT_FORM) {
+                if (Client.Events == WAIT_FORM) {
                     readFormData(i);
-                    if (clients[i].response.getResponseCode() == ENTITYTOOLARGE)
+                    if (Client.response.getResponseCode() == ENTITYTOOLARGE)
                         continue;
                 } else {
-                    ServerResponse(clients[i]);
+                    ServerResponse(Client);
+                    if (Client.Events == EXITED)
+                        continue;
                 }
-
-                if (!clients[i].writeBuffer.empty() && clients[i].events != WAIT_FORM)
+                if (!Client.writeBuffer.empty() && Client.Events != WAIT_FORM)
                     pollFds[i].events |= POLLOUT;
             }
 
-            if (i > 0 && (re & POLLOUT) && clients[i].events != WAIT_FORM
-            && !clients[i].writeBuffer.empty())
+            if (i > 0 && (re & POLLOUT) && Client.Events != WAIT_FORM
+            && !Client.writeBuffer.empty())
                 client_send(i);
             }
         }

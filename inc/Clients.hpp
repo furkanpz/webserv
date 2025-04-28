@@ -7,7 +7,7 @@ class Clients {
     public:
         int         fd;
         std::string formData;
-        int         events;
+        int         Events;
         Response    response;
         unsigned long maxBodySize;
         Server server;
