@@ -59,6 +59,20 @@ std::string Utils::returnResponseHeader(Clients &client) {
         header += "Location: " + client.response.getPureLink() + "/\r\n";
     else if (client.response.getResponseCode() == 302)
         header += "Location: " + client.response.getRedirect() + "/\r\n";
+    if (!client.response.getAddHeader().empty())
+        header += client.response.getAddHeader();  
+    std::cout << "ADD_HEADER = " << client.response.getAddHeader() << std::endl;
+    if (!client.response.getAddHeader().empty())
+    {
+        std::string file_name = client.response.getFile(); 
+        while (file_name.find("/"))
+        const std::string &add_header = client.response.getAddHeader();
+        if (add_header.find("attachment") != std::string::npos)
+        {
+            header += add_header + ";  filename=\"";
+        }
+        
+    }
     header += "Connection: keep-alive\r\n";
     std::ostringstream oss;
     oss << client.response.getContent().length();

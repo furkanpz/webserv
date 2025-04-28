@@ -20,6 +20,7 @@ class Response{
         std::string responseCodestr;
         bool methodNotAllowed;
         bool autoIndex;
+        std::string add_header;
         std::vector<std::string> _methods;
         std::string redirect;
     public:
@@ -74,5 +75,8 @@ class Response{
 
         std::string getRedirect(void) const;
         void setRedirect(std::string _redirect);
+
+        const std::string &getAddHeader(void) const;
+        void setAddHeader(const std::string &header);
       
     };

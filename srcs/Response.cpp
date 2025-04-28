@@ -89,12 +89,14 @@ void Response::setFile(std::string _file, Server &server)
 
     const Location &loc = (locationIndex == -1) ? server.locations[server.rootLocation] : server.locations[locationIndex];
 
-    if (locationIndex != -1 && !loc.redirect.empty())
+    if (!loc.redirect.empty())
     {
         redirect = loc.redirect;
-        responseCode = 302;
+        responseCode = FOUND;
         return;
     }
+    if (!loc.add_header.empty())
+        add_header = loc.add_header;
 
     if (!loc.root.empty())
         file += loc.root;
@@ -102,7 +104,7 @@ void Response::setFile(std::string _file, Server &server)
         file += server.serverinroot;
     else
     {
-        responseCode = 404;
+        responseCode = NOTFOUND;
         return;
     }
 
@@ -113,12 +115,12 @@ void Response::setFile(std::string _file, Server &server)
     {
         std::string methodName = methods[MAX_INT - requestType];
         if (std::find(_methods.begin(), _methods.end(), methodName) != _methods.end())
-            responseCode = 200;
+            responseCode = OK;
         else
-            responseCode = 405;
+            responseCode = NOTALLOWED;
     }
     else
-        responseCode = 405;
+        responseCode = NOTALLOWED;
 
     for (size_t i = matchedIndex + 1; i < parts.size(); ++i)
         file += "/" + parts[i];
@@ -148,7 +150,7 @@ void Response::setcontentType(std::string _type)
 Response::Response() : formData(""), file(""), requestType(NONE), 
     responseCode(-1), content(""), isCGI(false), cgiPath(""), cgiExtension(""),
     ContentLenght(0), contentType(""), isChunked(false), 
-    responseCodestr(""), methodNotAllowed(false)
+    responseCodestr(""), methodNotAllowed(false), add_header("")
 {
     
 }
@@ -281,4 +283,14 @@ std::string Response::getRedirect(void) const
 void Response::setRedirect(std::string _redirect)
 {
     this->redirect = _redirect;
+}
+
+const std::string &Response::getAddHeader(void) const
+{
+    return this->add_header;
+}
+
+void Response::setAddHeader(const std::string &header)
+{
+    this->add_header = header;
 }

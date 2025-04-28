@@ -21,6 +21,7 @@ struct Location {
     std::string cgi_extension;
     std::string cgi_path;
     std::string upload_root;
+    std::string add_header;
     unsigned long upload_limit;
 };
 
@@ -45,5 +46,7 @@ struct Server {
 bool is_valid_ip(const std::string& ip);
 std::vector<Server> parse_config(const std::string& filename);
 void print_servers(const std::vector<Server>& servers);
+bool check_braces(const std::string& filename);
+
 
 #endif

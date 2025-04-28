@@ -1,6 +1,8 @@
 NAME = webserv
 
-SRCS = main.cpp WebServer.cpp Utils.cpp Response.cpp Clients.cpp config.cpp
+SRCSF = ./srcs/
+
+SRCS = $(SRCSF)main.cpp $(SRCSF)WebServer.cpp $(SRCSF)Utils.cpp $(SRCSF)Response.cpp $(SRCSF)Clients.cpp $(SRCSF)config.cpp
 
 CC = c++
 RM = rm -rf
@@ -16,8 +18,6 @@ OBJS = $(SRCS:.cpp=.o)
 $(NAME): $(OBJS)
 		$(CC) $(CFLAGS) -o $(NAME) $(OBJS)
 
-$(TESTERFILE): tester.cpp 
-		$(CC) ./tester.cpp -o tester
 
 all: $(NAME)
 clean: 
@@ -29,7 +29,4 @@ fclean: clean
 re: fclean all
 
 
-
-tester: $(TESTERFILE)
-
-.PHONY: all clean fclean re tester
+.PHONY: all clean fclean re

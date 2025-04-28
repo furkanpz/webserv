@@ -8,7 +8,6 @@ from urllib.parse import quote
 UPLOAD_DIR = "./uploads"
 
 form = cgi.FieldStorage()
-print("BABA MERABA")
 filename = form.getvalue("download_field")
 header = None
 response = """

@@ -39,10 +39,10 @@ std::vector<Server> parse_config(const std::string& filename)
 		{
             if (current_server.port == -1)
 			{
-                current_server.port = 80; // NGINX varsayılanı
+                current_server.port = 80;
             }
             if (current_server.host.empty()) {
-                current_server.host = "0.0.0.0"; // NGINX varsayılanı
+                current_server.host = "0.0.0.0";
             }
             in_server_block = false;
             servers.push_back(current_server);
@@ -96,7 +96,7 @@ std::vector<Server> parse_config(const std::string& filename)
     		port_ss >> current_server.port;
     		if (port_ss.fail() || !port_ss.eof())
 			{
-    		    std::cerr << "Error: Geçersiz port numarası: \"" << port_str << "\" (line " << line_number << ")" << std::endl;
+    		    std::cerr << "nginx: [emerg] invalid port in  \"" << port_str << "\" (line " << line_number << ")" << std::endl;
     		    file.close();
     		    servers.clear();
     		    return servers;
@@ -104,14 +104,14 @@ std::vector<Server> parse_config(const std::string& filename)
     		std::string extra;
     		if (ss >> extra)
 			{
-    		    std::cerr << "Error: Geçersiz argüman sayısı in \"listen\" direktifinde (line " << line_number << ")" << std::endl;
+    		    std::cerr << "nginx: [emerg] invalid number of arguments in \"listen\" directive in (line " << line_number << ")" << std::endl;
     		    file.close();
     		    servers.clear();
     		    return servers;
     		}
     		if (current_server.port <= 0 || current_server.port > 65535)
 			{
-    		    std::cerr << "Error: Geçersiz port numarası: \"" << current_server.port << "\" (line " << line_number << ")" << std::endl;
+    		    std::cerr << "nginx: [emerg] invalid port number in  \"" << current_server.port << "\" (line " << line_number << ")" << std::endl;
     		    file.close();
     		    servers.clear();
     		    return servers;
@@ -250,6 +250,21 @@ std::vector<Server> parse_config(const std::string& filename)
                     if (current_location.path == "/")
                         current_server.rootLocation = current_server.locations.size();
                 }
+                else if (key == "add_header")
+                {
+                    std::string add_header;
+                    std::string temp;
+
+                    ss >> add_header;
+                    if (add_header.find(";") == std::string::npos)
+                    {
+                        ss >> temp;
+                        add_header.append(" " + temp);
+                    }
+                    add_header = add_header.substr(0, add_header.find(";"));
+                    current_location.add_header = add_header;
+                    
+                }
                 else if (key == "methods")
 				{
                     std::string method;
@@ -346,6 +361,11 @@ std::vector<Server> parse_config(const std::string& filename)
         servers.clear();
         return servers;
     }
+    if (!check_braces(filename))
+    {
+        std::vector<Server>empty_servers;
+        return empty_servers;
+    }
     file.close();
 	if (servers.empty())
     {
@@ -354,6 +374,67 @@ std::vector<Server> parse_config(const std::string& filename)
     }
     return servers;
 }
+
+std::vector<std::string> parse_values_with_semicolon(std::stringstream& ss, const std::string& filename, int line_number)
+{
+    std::vector<std::string> values;
+    std::string token;
+    while (ss >> token)
+    {
+        size_t semicolon_pos = token.find(";");
+        if (semicolon_pos != std::string::npos)
+        {
+            token = token.substr(0, semicolon_pos);
+            values.push_back(token);
+            return values;
+        }
+        values.push_back(token);
+    }
+    std::cerr << "nginx: [emerg] directive is not terminated by \";\" in " << filename << ":" << line_number << std::endl;
+    return std::vector<std::string>();
+}
+
+bool check_braces(const std::string& filename)
+{
+    std::ifstream file(filename.c_str());
+    std::string tab_line;
+    int line_number = 0;
+    int open_braces = 0;  
+    int close_braces = 0;
+
+    if (!file.is_open())
+    {
+        std::cerr << "nginx: [emerg] could not open configuration file \"" << filename << "\": No such file or directory" << std::endl;
+        return false;
+    }
+
+    while (std::getline(file, tab_line))
+    {
+        line_number++;
+        std::string line = Utils::Spacetrim(tab_line);
+        if (line.empty() || line[0] == '#')
+            continue;
+        for (std::string::size_type i = 0; i < line.length(); ++i)
+        {
+            if (line[i] == '{')
+                open_braces++;
+            else if (line[i] == '}')
+                close_braces++;
+        }
+    }
+
+    file.close();
+
+    if (open_braces != close_braces)
+    {
+        std::cerr << "nginx: [emerg] mismatched braces in " << filename << ": " 
+                  << open_braces << " opening braces, " << close_braces << " closing braces" << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
 bool is_valid_ip(const std::string& ip)
 {
     std::istringstream iss(ip);
