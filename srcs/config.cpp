@@ -356,11 +356,11 @@ std::vector<Server> parse_config(const std::string& filename)
         return servers;
     }
 
-    for (int i = 0; i < servers.size(); i++)
+    for (size_t i = 0; i < servers.size(); i++)
     {
-        for (int x = 0; x < servers[i].locations.size(); x++)
+        for (size_t x = 0; x < servers[i].locations.size(); x++)
         {
-            for (int j = 0; j < servers[i].locations[x].methods.size(); j++)
+            for (size_t j = 0; j < servers[i].locations[x].methods.size(); j++)
             {
                 if (servers[i].locations[x].methods[j] != "GET" && servers[i].locations[x].methods[j] != "POST" && servers[i].locations[x].methods[j] != "DELETE")
                 {

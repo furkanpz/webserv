@@ -24,7 +24,7 @@ std::uniform_int_distribution<> methodDist(0, methods.size() - 1);
 std::uniform_int_distribution<> pathDist(0, paths.size() - 1);
 
 void sendRequest(int clientID, const std::string& method, const std::string& path, const std::string& body = "") {
-    int sock = socket(AF_INET, SOCK_STREAM, 0);
+    int sock = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
     if (sock == -1) {
         std::cerr << "[İstemci " << clientID << "] Socket oluşturulamadı!\n";
         return;

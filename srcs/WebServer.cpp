@@ -75,7 +75,7 @@ void WebServer::CGIHandle(Clients &client)
 
         if (client.response.getRequestType() == POST || client.response.getRequestType() == DELETE) 
         {    
-            write(fd_in[1], client.response.getFormData().c_str(), client.response.getFormData().size());
+            write(fd_in[1], client.response.getFormData().c_str(), client.response.getFormData().size()); // error dönme durumu kontrol et clienti şutla
             if (client.response.getFormData().empty())
                 client.response.setResponseCode(BADREQUEST);
         }
@@ -83,7 +83,7 @@ void WebServer::CGIHandle(Clients &client)
         bool finished = Utils::wait_with_timeout(pid, 2);
         if (finished)
         {
-            while ((bytesRead = read(fd_out[0], buffer, sizeof(buffer))) > 0)
+            while ((bytesRead = read(fd_out[0], buffer, sizeof(buffer))) > 0) // error dönme durumu kontrol et clienti şutla
                 response.append(buffer, bytesRead);
             close(fd_out[0]);
             client.response.setContent(response);
@@ -146,7 +146,7 @@ bool WebServer::CheckResponse(Clients &client, std::string &headers)
 {
     if (headers.find("Expect: 100-continue") != std::string::npos) {
         std::string continueResponse = "HTTP/1.1 100 Continue\r\n\r\n";
-        send(client.fd, continueResponse.c_str(), continueResponse.size(), 0);
+        send(client.fd, continueResponse.c_str(), continueResponse.size(), 0); // error dönme durumu kontrol et clienti şutla
     }
     Utils::parseContent(headers, client);
     if (client.response.getisCGI())
@@ -164,9 +164,7 @@ void WebServer::ServerResponse(Clients &client)
     std::string headers;
     char        buffer[10240] = {0};
     int         bytesRead;
-    int         contentLength = 0;
 
-    contentLength = 0;
     if (client.events == REQUEST)
     {
         while (true) {
@@ -216,11 +214,11 @@ void WebServer::readFormData(int i)
     while (true)
     {
         char buffer[10240];
-        int bytesRead = recv(clients[i].fd, buffer, sizeof(buffer), 0);
+        int bytesRead = recv(clients[i].fd, buffer, sizeof(buffer), 0); // error durumu clienti şutla
         if (bytesRead > 0) {
             clients[i].formData.append(buffer, bytesRead);
             if (tempChunk && clients[i].formData.find("0\r\n\r\n") != std::string::npos)
-                Utils::parseChunked(clients[i], clients[i].formData, 1); 
+                Utils::parseChunked(clients[i], clients[i].formData); 
         }
         else
             break;

@@ -223,7 +223,7 @@ int Utils::countSeperator(const std::string &buffer, const std::string &target) 
     return count;
 }
 
-std::string chunkedgetline(std::string& ver, std::istringstream &stream, int type)
+std::string chunkedgetline(std::istringstream &stream, int type)
 {
    std::string temp;
 
@@ -272,16 +272,15 @@ void Utils::ChunkedCompleted(Clients &client, std::string &result)
     }
 }
 
-void Utils::parseChunked(Clients &client, std::string &Body, int Type)
+void Utils::parseChunked(Clients &client, std::string &Body)
 {
     std::istringstream tempBody(Body);
     std::string result;
     std::string line;
-    size_t size = 0;
+    int size = 0;
     std::string temp;
     
-    int i = 0;
-    line = chunkedgetline(Body, tempBody, 0);
+    line = chunkedgetline(tempBody, 0);
     while (!line.empty())
     {
         size = 0;
@@ -293,14 +292,14 @@ void Utils::parseChunked(Clients &client, std::string &Body, int Type)
             break;
         }
         std::string temp;
-        while (temp.length() != size)
+        while (temp.length() != (size_t)size)
         {
-            line = chunkedgetline(Body, tempBody, size);
+            line = chunkedgetline(tempBody, size);
             temp.append(line);
         }
         result.append(temp);
-        line = chunkedgetline(Body, tempBody, 2);
-        line = chunkedgetline(Body, tempBody, 0);
+        line = chunkedgetline(tempBody, 2);
+        line = chunkedgetline(tempBody, 0);
     }
     
     if (size == -1)
@@ -393,7 +392,7 @@ void Utils::parseContent(std::string &buffer, Clients &client)
             response.setRequestType(GET);
         else
             response.setRequestType(NONE);
-        response.setFile(getFileName(request, client), client.server);
+        response.setFile(getFileName(request), client.server);
         response.setcontentType(get_content_type(request));
         response.setContentLength(getContentLenght(request, response));
         if (response.getContentLength() > client.maxBodySize)
@@ -416,7 +415,7 @@ bool Utils::isDirectory(const std::string& path) {
     return false;
 }
 
-std::string Utils::getFileName(std::string request, Clients &client)
+std::string Utils::getFileName(std::string request)
 {
 
     size_t pos = request.find(" ");

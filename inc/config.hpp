@@ -26,10 +26,10 @@ struct Location {
 };
 
 struct Server {
+    unsigned long client_max_body_size;
     int port;
     std::string host;
     std::vector<std::string> server_names;
-    unsigned long client_max_body_size;
     std::map<int, std::string> error_pages;
     int rootLocation;
 	std::string serverinroot;
