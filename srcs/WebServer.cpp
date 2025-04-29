@@ -45,8 +45,9 @@ void WebServer::CGIHandle(Clients &client)
     int req = client.response.getRequestType();
     if (pid == 0)
     {
-        std::string cgi_path = client.response.getFile();
-        chdir(client.response.getCgiRoot().c_str());
+        const std::string &cgi_root = client.response.getCgiRoot();
+        
+        chdir(cgi_root.c_str());
         if (req == POST || req == DELETE) {
             setenv("CONTENT_TYPE", client.response.getcontentType().c_str(), 1);
             setenv("CONTENT_LENGTH", Utils::intToString(client.response.getContentLength()).c_str(), 1);
@@ -55,12 +56,13 @@ void WebServer::CGIHandle(Clients &client)
         close(fd_out[0]);  
         dup2(fd_out[1], 1); 
         close(fd_out[1]);
-
+        
         close(fd_in[1]); 
         dup2(fd_in[0], 0); 
         close(fd_in[0]);
-
-        std::string file = client.response.getFile();
+        
+        
+        std::string file = client.response.getFile().substr(cgi_root.length() + 1);
         std::string cgiPath = client.response.getCgiPath();
         const char *argv[] = { cgiPath.c_str() ,file.c_str(), NULL};
         execve(argv[0], const_cast<char *const *>(argv), environ);

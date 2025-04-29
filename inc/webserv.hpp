@@ -32,6 +32,7 @@ static const std::string methods[3] = {"GET", "POST", "DELETE"};
 
 #define SEEOF 0
 #define OK 200
+#define CREATED 201
 #define MOVEDPERMANENTLY 301
 #define FOUND 302
 #define NOTMODIFIED 304
