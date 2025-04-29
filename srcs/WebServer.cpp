@@ -45,6 +45,8 @@ void WebServer::CGIHandle(Clients &client)
     int req = client.response.getRequestType();
     if (pid == 0)
     {
+        std::string cgi_path = client.response.getFile();
+        chdir(client.response.getCgiRoot().c_str());
         if (req == POST || req == DELETE) {
             setenv("CONTENT_TYPE", client.response.getcontentType().c_str(), 1);
             setenv("CONTENT_LENGTH", Utils::intToString(client.response.getContentLength()).c_str(), 1);

@@ -78,7 +78,10 @@ void Response::setFile(std::string _file, Server &server)
             if (server.locations[j].path == united_parts[i])
             {
                 if (cgiPath.empty() && !server.locations[j].cgi_path.empty())
+                {
                     cgiPath = server.locations[j].cgi_path;
+                    cgi_root = "." + server.locations[j].root;
+                }
                 if (cgiExtension.empty() && !server.locations[j].cgi_extension.empty())
                     cgiExtension = server.locations[j].cgi_extension;
                 locationIndex = j; matchedIndex = i;
@@ -133,9 +136,8 @@ void Response::setFile(std::string _file, Server &server)
     }
     else
         responseCode = NOTALLOWED;
-    std::cout << "file: " << file << std::endl;
     for (size_t i = matchedIndex + 1; i < parts.size(); ++i)
-        file += "/" + parts[i];
+        file += ((file[file.length() - 1] == '/') ? "" : "/") + parts[i];
 }
 
 
@@ -305,4 +307,13 @@ const std::string &Response::getAddHeader(void) const
 void Response::setAddHeader(const std::string &header)
 {
     this->add_header = header;
+}
+
+const std::string &Response::getCgiRoot(void) const
+{
+    return this->cgi_root;
+}
+void Response::setCgiRoot(std::string cgiroot)
+{
+    this->cgi_root = cgiroot;
 }

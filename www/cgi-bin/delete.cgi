@@ -18,7 +18,6 @@ except:
     print(header + response)
     exit()
 
-
 flag = 0
 response = """
 <html lang="en">

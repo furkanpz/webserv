@@ -137,7 +137,7 @@
                 if (status === 200) {
                     showMessage("Dosya başarıyla silindi.", "success");
                 } else {
-                    showMessage("Dosya silinirken bir hata oluştu: " + body, "error");
+                    showMessage("Dosya silinirken bir hata oluştu: ", "error");
                 }
             })
             .catch(error => {

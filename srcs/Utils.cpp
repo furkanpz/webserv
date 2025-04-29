@@ -140,13 +140,15 @@ std::string Utils::readFile(const std::string& fileName,
          || access(fileName.c_str(), F_OK) != 0
          || access(fileName.c_str(), R_OK) != 0)
         {
+            if (access(fileName.c_str(), R_OK) != 0)
+                return returnErrorPages(response, INTERNALSERVERERROR, client);
             return returnErrorPages(response,
                     access(srv.cgi_pathinserver.c_str(), X_OK) != 0
                     ? INTERNALSERVERERROR : NOTFOUND,
                     client);
         }
         if (access(fileName.c_str(), X_OK) != 0)
-            return returnErrorPages(response, FORBIDDEN, client);
+            return returnErrorPages(response, INTERNALSERVERERROR, client);
 
         if (fileName.find(srv.cgi_extensioninserver) == std::string::npos)
             return returnErrorPages(response, INTERNALSERVERERROR, client);

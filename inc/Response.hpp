@@ -23,6 +23,8 @@ class Response{
         std::string add_header;
         std::vector<std::string> _methods;
         std::string redirect;
+        std::string cgi_root;
+
     public:
         Response();
 
@@ -78,5 +80,8 @@ class Response{
 
         const std::string &getAddHeader(void) const;
         void setAddHeader(const std::string &header);
+        
+        const std::string &getCgiRoot(void) const;
+        void setCgiRoot(std::string cgiroot);
       
     };
