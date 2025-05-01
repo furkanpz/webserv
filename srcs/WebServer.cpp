@@ -117,12 +117,13 @@ void WebServer::CGIHandle(Clients &client)
     client.writeBuffer = Utils::returnResponseHeader(client);
 }
 
-void WebServer::ServersCreator(std::vector<Server> &servers)
+void WebServer::ServersCreator(std::vector<Servers> &servers)
 {
     for (size_t i = 0; i < servers.size(); i++)
     {
-        Server &server = servers[i];
-        server.serverFd = SocketCreator(servers[i]);
+
+        Server &server = servers[i].Default;
+        server.serverFd = SocketCreator(servers[i].Default);
         if (server.serverFd == 0) {freeaddrinfo(server.res); close(server.serverFd); throw ServerExcp("Socket Error");}
         int opt = 1;
         if (setsockopt(server.serverFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
@@ -142,7 +143,7 @@ void WebServer::ServersCreator(std::vector<Server> &servers)
     serverSize = pollFds.size();
     std::cout << "Server size: " << serverSize << std::endl;
 }
-WebServer::WebServer(std::vector<Server> &servers) : w_servers(servers) {
+WebServer::WebServer(std::vector<Servers> &servers) : w_servers(servers) {
     ServersCreator(servers);
 }
 
@@ -179,6 +180,8 @@ bool WebServer::CheckResponse(Clients &client, std::string &headers)
     return false;
 }
 
+
+
 void WebServer::ServerResponse(Clients &client)
 {
     std::string headers;
@@ -201,8 +204,8 @@ void WebServer::ServerResponse(Clients &client)
                     return;
                 break;
             }
-
         }
+        Utils::getServerByHost(Utils::get_host_header(headers), client);
     }
     if (CheckResponse(client, headers))
         return;
@@ -212,7 +215,7 @@ void WebServer::ServerResponse(Clients &client)
 void WebServer::addClient(int fd, short events, size_t i)
 {
     pollfd clientPollFd = {fd, events, 0};
-    Clients newClient(fd, this->w_servers[i].client_max_body_size, w_servers[i]);
+    Clients newClient(fd, w_servers[i].Default, w_servers[i]);
     pollFds.push_back(clientPollFd);
     clients.push_back(newClient);
 }
@@ -260,7 +263,7 @@ void WebServer::readFormData(int i)
 
 int WebServer::new_connection(size_t i)
 {
-    Server &server = w_servers[i];
+    Server &server = w_servers[i].Default;
     int clientFd = accept(server.serverFd, (sockaddr *)&server.address, (socklen_t *)&server.addrLen);
     if (clientFd < 0) { return clientFd; }
 

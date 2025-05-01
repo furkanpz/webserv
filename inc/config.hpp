@@ -40,13 +40,19 @@ struct Server {
     int addrLen;
     struct sockaddr_in address;
     int serverFd;
+    std::vector<Server> possibleServers;
 
 	Server() : client_max_body_size(1024 * 1024), port(0){}
+};
+
+struct Servers {
+    Server Default;
+    std::vector<Server> posibleServers;
 };
 bool is_valid_ip(const std::string& ip);
 std::vector<Server> parse_config(const std::string& filename);
 void print_servers(const std::vector<Server>& servers);
 bool check_braces(const std::string& filename);
-
-
+void printserversandposibleservers(std::vector<Servers> &servers);
+std::vector<Servers> SetServers(std::vector<Server> &servers);
 #endif

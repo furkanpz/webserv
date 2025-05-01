@@ -91,8 +91,23 @@ std::vector<Server> parse_config(const std::string& filename)
             if (key == "listen")
 		    {
     	    	std::string port_str;
+    	    	std::string server_str;
     	    	ss >> port_str;
     	    	port_str = port_str.substr(0, port_str.find(";"));
+                server_str = port_str.substr(0, port_str.find(":"));
+                if (server_str != port_str)
+                {
+                    if (!is_valid_ip(server_str))
+		    	    {
+                        std::cerr << "webserv: invalid host in \"host\" directive in " << filename << ":" << line_number << std::endl;
+                        file.close();
+                        servers.clear();
+                        return servers;
+                    }
+                    current_server.host = server_str;
+                    port_str = port_str.substr(port_str.find(":") + 1);
+                }
+                
     	    	std::stringstream port_ss(port_str);
     	    	port_ss >> current_server.port;
     	    	if (port_ss.fail() || !port_ss.eof())
@@ -118,28 +133,6 @@ std::vector<Server> parse_config(const std::string& filename)
     	    	    return servers;
     	    	}
 		    }
-            else if (key == "host")
-		    {
-                std::string host;
-                ss >> host;
-                host = host.substr(0, host.find(";"));
-                std::string extra;
-                if (ss >> extra)
-		    	{
-                    std::cerr << "webserv: invalid number of arguments in \"host\" directive in " << filename << ":" << line_number << std::endl;
-                    file.close();
-                    servers.clear();
-                    return servers;
-                }
-                if (host.empty() || !is_valid_ip(host))
-		    	{
-                    std::cerr << "webserv: invalid host in \"host\" directive in " << filename << ":" << line_number << std::endl;
-                    file.close();
-                    servers.clear();
-                    return servers;
-                }
-                current_server.host = host;
-            }
             else if (key == "server_name")
 		    {
                 std::string name;
@@ -461,47 +454,54 @@ bool is_valid_ip(const std::string& ip)
     return count == 4;
 }
 
-void print_servers(const std::vector<Server>& servers) {
-    for (size_t i = 0; i < servers.size(); ++i) {
-        const Server& server = servers[i];
-		std::cout << "serverinroot" << server.serverinroot << "\n";
-        std::cout << "Server " << i + 1 << ":\n";
-        std::cout << "  Host: " << server.host << "\n";
-        std::cout << "  Port: " << server.port << "\n";
-        std::cout << "  Root Location: " << server.rootLocation << "\n";
-        std::cout << "  Server Names: ";
-        for (size_t j = 0; j < server.server_names.size(); ++j) {
-            std::cout << server.server_names[j];
-            if (j != server.server_names.size() - 1)
-                std::cout << ", ";
-        }
-        std::cout << "\n";
-        std::cout << "  Client Max Body Size: " << server.client_max_body_size << "\n";
-        std::cout << "  Error Pages:\n";
-        for (std::map<int, std::string>::const_iterator it = server.error_pages.begin(); it != server.error_pages.end(); ++it) {
-            std::cout << "    " << it->first << " => " << it->second << "\n";
-        }
-        std::cout << "  Locations:\n";
-        for (size_t j = 0; j < server.locations.size(); ++j) {
-            const Location& loc = server.locations[j];
-            std::cout << "    Location " << j + 1 << ":\n";
-            std::cout << "      Path: " << loc.path << "\n";
-            std::cout << "      Root: " << loc.root << "\n";
-            std::cout << "      Methods: ";
-            for (size_t k = 0; k < loc.methods.size(); ++k) {
-                std::cout << loc.methods[k];
-                if (k != loc.methods.size() - 1)
-                    std::cout << ", ";
+std::vector<Servers> SetServers(std::vector<Server> &servers) {
+    std::vector<Servers> grouped;
+    while (!servers.empty()) {
+        Server base = servers.front();
+        Servers group;
+        group.Default = base;
+        for (size_t j = 1; j < servers.size(); ++j) {
+            if (servers[j].port == base.port) {
+                group.Default.server_names.insert(
+                    group.Default.server_names.end(),
+                    servers[j].server_names.begin(),
+                    servers[j].server_names.end()
+                );
+                group.Default.client_max_body_size = std::max(
+                    group.Default.client_max_body_size,
+                    servers[j].client_max_body_size
+                );
+                group.Default.locations.insert(
+                    group.Default.locations.end(),
+                    servers[j].locations.begin(),
+                    servers[j].locations.end()
+                );
+                group.Default.error_pages.insert(
+                    servers[j].error_pages.begin(),
+                    servers[j].error_pages.end()
+                );
+                group.posibleServers.push_back(servers[j]);
+                servers.erase(servers.begin() + j);
+                --j;
             }
-            std::cout << "\n";
-            std::cout << "      Autoindex: " << (loc.autoindex ? "on" : "off") << "\n";
-            std::cout << "      Index: " << loc.index << "\n";
-            std::cout << "      Redirect: " << loc.redirect << "\n";
-            std::cout << "      CGI Extension: " << loc.cgi_extension << "\n";
-            std::cout << "      CGI Path: " << loc.cgi_path << "\n";
-            std::cout << "      Upload Root: " << loc.upload_root << "\n";
-            std::cout << "      Upload Limit: " << loc.upload_limit << "\n";
         }
-        std::cout << "\n";
+        group.posibleServers.insert(group.posibleServers.begin(), base);
+        servers.erase(servers.begin());
+        grouped.push_back(group);
+    }
+    return grouped;
+}
+
+
+void printserversandposibleservers(std::vector<Servers> &servers)
+{
+    for (size_t i = 0; i < servers.size(); i++)
+    {
+        std::cout << "Server " << servers[i].Default.host << ":" << servers[i].Default.port << std::endl;
+        std::cout << "Posible Servers: " << std::endl;
+        for (size_t j = 0; j < servers[i].posibleServers.size(); j++)
+        {
+            std::cout << "\t" << servers[i].posibleServers[j].server_names[0] << ":" << servers[i].posibleServers[j].port << std::endl;
+        }
     }
 }

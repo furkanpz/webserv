@@ -9,7 +9,7 @@ class Response;
 
 class WebServer {
     private:
-        std::vector<Server> &w_servers;
+        std::vector<Servers> &w_servers;
         std::vector<pollfd> pollFds;
         std::vector<Clients> clients;
         int serverSize;
@@ -25,7 +25,7 @@ class WebServer {
         void readFormData(int i);
         int new_connection(size_t i);
         void CGIEXECUTE(Clients &client, int fd_out[2], int fd_in[2]);
-        void ServersCreator(std::vector<Server> &servers);
+        void ServersCreator(std::vector<Servers> &servers);
         void client_send(int i);
         int findPollIndex(int fd);
 
@@ -33,7 +33,7 @@ class WebServer {
         void start();
     
     public:
-        WebServer(std::vector<Server> &servers);
+        WebServer(std::vector<Servers> &servers);
         ~WebServer();
 
         class ServerExcp : public std::exception {

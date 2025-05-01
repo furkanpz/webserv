@@ -2,7 +2,7 @@
 #include "WebServer.hpp"
 
 WebServer *g_server = NULL;
-std::vector<Server> g_servers;
+std::vector<Servers> g_servers;
 
 void ServerKill(int sig) {
     (void) sig;
@@ -16,9 +16,8 @@ int main(int ac, char **av)
     if (ac == 2)
     {
         try {
-            g_servers = parse_config(av[1]);
-            
-            // print_servers(g_servers);
+            std::vector<Server> PureServers = parse_config(av[1]);
+            g_servers = SetServers(PureServers);
             if (g_servers.size() == 0)
             {
                 std::cerr << "No server found in the configuration file." << std::endl;

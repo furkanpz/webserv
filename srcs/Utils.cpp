@@ -9,6 +9,40 @@ std::string Utils::intToString(int num)
     return ss.str();
 }
 
+std::string Utils::get_host_header(const std::string& request) {
+    size_t host_start = request.find("Host:");
+    if (host_start == std::string::npos) return "";
+    size_t host_end = request.find("\r\n", host_start);
+    std::string host = request.substr(host_start + 5, host_end - host_start - 5);
+    size_t port_pos = host.find(":");
+    if (port_pos != std::string::npos) {
+        host = host.substr(0, port_pos);
+    }
+    return Utils::Spacetrim(host);
+}
+
+void Utils::getServerByHost(const std::string& host, Clients& client)
+{
+    std::vector<Server>& possible = client.servers.posibleServers;
+
+    for (size_t i = 0;i < possible.size(); i++){
+        Server& srv = possible[i];
+        
+        for (size_t j = 0; j < srv.server_names.size(); j++)
+        {
+            if (srv.server_names[j] == host)
+            {
+                client.server = srv;
+                client.maxBodySize = srv.client_max_body_size;
+                return ;
+            }
+        }
+    }
+    client.maxBodySize = client.servers.Default.client_max_body_size;
+}
+
+
+
 std::string Utils::returnErrorPages(Response &response, int ErrorType, Clients &Client)
 {
     Server                                  &server = Client.server;

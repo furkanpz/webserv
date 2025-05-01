@@ -29,4 +29,6 @@ class Utils
         static std::string returnErrorPages(Response &response, int ErrorType, Clients &Client);
         static std::string generateAutoIndex(const std::string& path, const std::string& requestPath, Clients &client);
         static bool wait_with_timeout(pid_t pid, int timeout_seconds);
+        static std::string get_host_header(const std::string& request);
+        static void getServerByHost(const std::string &host, Clients &client);
 };

@@ -11,10 +11,11 @@ class Clients {
         Response    response;
         unsigned long maxBodySize;
         Server server;
+        Servers servers;
         std::string writeBuffer;
         size_t      writeOffset;
 
-        Clients(int, unsigned long, Server &);
+        Clients(int, Server &, Servers &);
         ~Clients();
         void clearClient(void);
         int         getFd() const;

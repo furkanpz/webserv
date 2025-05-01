@@ -5,7 +5,7 @@ import os
 import html
 from urllib.parse import quote
 
-UPLOAD_DIR = "./uploads"
+UPLOAD_DIR = "../../uploads"
 
 form = cgi.FieldStorage()
 filename = form.getvalue("download_field")
