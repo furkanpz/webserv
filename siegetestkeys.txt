@@ -13,3 +13,5 @@ curl -H "Transfer-Encoding: chunked" -F "file=@file" http://10.11.33.10:8080/cgi
 
 https://42-evaluation-sheets-hub.vercel.app/Cursus/Webserv/index.html
 
+curl -X POST http://localhost:4242/cgi-bin/displayForm.cgi -H "Content-Type: application/x-www-form-urlencoded" -H "Host: " -d "name=T&surname=T&age=T&nickname=T"
+curl --resolve deneme:4242:127.0.0.1 http://deneme:4242/

@@ -474,15 +474,24 @@ std::string Utils::getFileName(std::string request)
     return  path;
 }
 
+std::string Utils::getTime()
+{
+	std::time_t t = std::time(NULL);
+	char buffer[80];
+	std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", std::localtime(&t));
+	return (std::string(buffer));
+}
+
 void Utils::print_response(Clients &client)
 {
     Response &response = client.response;
     if (response.getRequestType() == NONE)
         return ;
-    std::string meth(" [" + methods[MAX_INT - response.getRequestType()] + "]");
-    std::string serverinfo(client.server.host + ":" + intToString(client.server.port));
-    std::cout << "Server " << serverinfo <<meth << std::setw(2)
-               << " " << response.getPureLink() << "  " << std::setw(2) << response.getResponseCode() << std::endl;
+    std::string meth(methods[MAX_INT - response.getRequestType()]);
+    std::cout << "\033[0;34m";
+    std::cout << "[INFO] " << Utils::getTime() << ": Server=" <<  client.ServerName << " Method=<" << meth << "> URL=\""
+            << response.getPureLink() << "\" Response=" << std::setw(2) << response.getResponseCode() << std::endl;
+    std::cout << "\033[0m";
 }
 
 std::vector<std::string> Utils::split(const std::string& s, char delimiter) {
@@ -536,4 +545,9 @@ std::string Utils::generateAutoIndex(const std::string& path, const std::string&
 
     html << "</ul></body></html>";
     return html.str();
+}
+
+void Utils::printInfo(const std::string &info) {
+    std::cout << "\033[0;32m" << "[INFO] " << Utils::getTime() << ": " << info << std::endl;
+    std::cout << "\033[0m";
 }

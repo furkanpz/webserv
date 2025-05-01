@@ -14,6 +14,7 @@ class Clients {
         Servers servers;
         std::string writeBuffer;
         size_t      writeOffset;
+        std::string ServerName;
 
         Clients(int, Server &, Servers &);
         ~Clients();

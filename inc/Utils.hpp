@@ -31,4 +31,6 @@ class Utils
         static bool wait_with_timeout(pid_t pid, int timeout_seconds);
         static std::string get_host_header(const std::string& request);
         static void getServerByHost(const std::string &host, Clients &client);
+        static std::string getTime();
+        static void printInfo(const std::string &info);
 };

@@ -119,9 +119,9 @@ void WebServer::CGIHandle(Clients &client)
 
 void WebServer::ServersCreator(std::vector<Servers> &servers)
 {
+    Utils::printInfo("Creating servers.");
     for (size_t i = 0; i < servers.size(); i++)
     {
-
         Server &server = servers[i].Default;
         server.serverFd = SocketCreator(servers[i].Default);
         if (server.serverFd == 0) {freeaddrinfo(server.res); close(server.serverFd); throw ServerExcp("Socket Error");}
@@ -131,17 +131,14 @@ void WebServer::ServersCreator(std::vector<Servers> &servers)
             freeaddrinfo(server.res);
             throw ServerExcp("Setsockopt Error");
         }
-        std::cout << server.host << ":" << server.port << std::endl;
         if (bind(server.serverFd, server.res->ai_addr, server.res->ai_addrlen) < 0) {freeaddrinfo(server.res); close(server.serverFd); throw ServerExcp("Bind Error");}
         freeaddrinfo(server.res);
         if (listen(server.serverFd, SOMAXCONN) < 0) {close(server.serverFd); throw ServerExcp("Listen Error");}
 
         setNonBlocking(server.serverFd);
         addClient(server.serverFd, POLLIN, i);
-        std::cout << "Server listening on " << server.host << ":" << server.port << "..." << std::endl;
     }
     serverSize = pollFds.size();
-    std::cout << "Server size: " << serverSize << std::endl;
 }
 WebServer::WebServer(std::vector<Servers> &servers) : w_servers(servers) {
     ServersCreator(servers);
@@ -205,7 +202,8 @@ void WebServer::ServerResponse(Clients &client)
                 break;
             }
         }
-        Utils::getServerByHost(Utils::get_host_header(headers), client);
+        client.ServerName = Utils::get_host_header(headers);
+        Utils::getServerByHost(client.ServerName, client);
     }
     if (CheckResponse(client, headers))
         return;
@@ -301,7 +299,7 @@ void WebServer::client_send(int i) {
 }
 
 void WebServer::start() {
-
+    Utils::printInfo("Server is running.");
     while (true) {
         int events = poll(pollFds.data(), pollFds.size(), -1);
         if (events < 0) throw ServerExcp("Poll Error");
