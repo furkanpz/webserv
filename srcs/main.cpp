@@ -8,10 +8,19 @@ std::vector<Server> PureServers;
 
 void ServerKill(int sig) {
     (void) sig;
-    delete g_server;
     PureServers.empty();
+    g_servers.empty();
+    delete g_server;
     Utils::printInfo("Servers killed");
     exit(1);
+}
+
+void signalSetter()
+{
+    signal(SIGINT, ServerKill);
+    signal(SIGPIPE, SIG_IGN);
+    signal(SIGTSTP, SIG_IGN);
+    signal(SIGQUIT, SIG_IGN);
 }
 
 int main(int ac, char **av)
@@ -21,6 +30,7 @@ int main(int ac, char **av)
         try {
             Utils::printInfo("Parsing configuration file.");
             PureServers = parse_config(av[1]);
+            
             if (PureServers.size() == 0)
             {
                 std::cout << "\033[31m";
@@ -30,8 +40,7 @@ int main(int ac, char **av)
             g_servers = SetServers(PureServers);
             Utils::printInfo("Configuration file parsed");
             g_server = new WebServer(g_servers);
-            signal(SIGINT, ServerKill);
-            signal(SIGPIPE, SIG_IGN);
+            signalSetter();
             g_server->start();
         }
         catch (std::exception &e)
