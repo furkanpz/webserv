@@ -2,6 +2,9 @@
 
 import cgi
 import os
+import signal
+
+signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
 UPLOAD_DIR = "../../uploads"
 

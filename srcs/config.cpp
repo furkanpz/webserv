@@ -345,10 +345,7 @@ std::vector<Server> parse_config(const std::string& filename)
     }
     file.close();
 	if (servers.empty())
-    {
-        std::cerr << "webserv: no \"server\" directive found in " << filename << std::endl;
         return servers;
-    }
 
     for (size_t i = 0; i < servers.size(); i++)
     {

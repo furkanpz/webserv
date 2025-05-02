@@ -24,10 +24,8 @@ class WebServer {
         void CGIHandle(Clients &client);
         void readFormData(int i);
         int new_connection(size_t i);
-        void CGIEXECUTE(Clients &client, int fd_out[2], int fd_in[2]);
         void ServersCreator(std::vector<Servers> &servers);
         void client_send(int i);
-        int findPollIndex(int fd);
 
     public:
         void start();

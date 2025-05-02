@@ -94,7 +94,7 @@ std::string Utils::returnResponseHeader(Clients &client) {
     if (responseCode == MOVEDPERMANENTLY)
         header += "Location: " + client.response.getPureLink() + "/\r\n";
     else if (responseCode == FOUND)
-        header += "Location: " + client.response.getRedirect() + "/\r\n";  
+        header += "Location: " + client.response.getRedirect() + "\r\n";  
     if (!client.response.getAddHeader().empty() && responseCode == 200)
     {
         const std::string &add_header = client.response.getAddHeader();

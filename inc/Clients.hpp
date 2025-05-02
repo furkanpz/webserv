@@ -19,9 +19,5 @@ class Clients {
         Clients(int, Server &, Servers &);
         ~Clients();
         void clearClient(void);
-        int         getFd() const;
-        void        setFd(int _fd);
-        int         getRequestType() const;
-        void        setRequestType(int);
         
 };

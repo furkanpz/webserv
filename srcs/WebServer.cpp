@@ -21,14 +21,6 @@ int WebServer::SocketCreator(Server &server){
     return (socket(server.res->ai_family, server.res->ai_socktype, server.res->ai_protocol));
 }
 
-int WebServer::findPollIndex(int fd) {
-    for (size_t j = 0; j < pollFds.size(); ++j) {
-        if (pollFds[j].fd == fd)
-            return j;
-    }
-    return -1;
-}
-
 void WebServer::CGIHandle(Clients &client)
 {
     extern char **environ;

@@ -1,18 +1,14 @@
 #!/usr/bin/env python3
 import cgi
+import signal
 
+signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
 form = cgi.FieldStorage()
-try :
-    name = form.getvalue("name", None)
-    surname = form.getvalue("surname", None)
-    age = form.getvalue("age", None)
-    nickname = form.getvalue("nickname", None)
-except:
-    header = "HTTP/1.1 400 Bad Request\r\n"
-    response = "Invalid input"
-    print(header + response)
-    exit()
+name = form.getvalue("name", None)
+surname = form.getvalue("surname", None)
+age = form.getvalue("age", None)
+nickname = form.getvalue("nickname", None)
 
 response = f"""<!DOCTYPE html>
 <html lang="tr">
