@@ -488,8 +488,10 @@ void Utils::print_response(Clients &client)
     if (response.getRequestType() == NONE)
         return ;
     std::string meth(methods[MAX_INT - response.getRequestType()]);
+    std::string servername = (client.ServerName.empty() != true) ? client.ServerName : "0.0.0.0";
+
     std::cout << "\033[0;34m";
-    std::cout << "[INFO] " << Utils::getTime() << ": Server=" <<  client.ServerName << " Method=<" << meth << "> URL=\""
+    std::cout << "[INFO] " << Utils::getTime() << ": Server=" << servername << " Method=<" << meth << "> URL=\""
             << response.getPureLink() << "\" Response=" << std::setw(2) << response.getResponseCode() << std::endl;
     std::cout << "\033[0m";
 }

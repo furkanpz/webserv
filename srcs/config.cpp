@@ -371,25 +371,6 @@ std::vector<Server> parse_config(const std::string& filename)
     return servers;
 }
 
-std::vector<std::string> parse_values_with_semicolon(std::stringstream& ss, const std::string& filename, int line_number)
-{
-    std::vector<std::string> values;
-    std::string token;
-    while (ss >> token)
-    {
-        size_t semicolon_pos = token.find(";");
-        if (semicolon_pos != std::string::npos)
-        {
-            token = token.substr(0, semicolon_pos);
-            values.push_back(token);
-            return values;
-        }
-        values.push_back(token);
-    }
-    std::cerr << "webserv: directive is not terminated by \";\" in " << filename << ":" << line_number << std::endl;
-    return std::vector<std::string>();
-}
-
 bool check_braces(const std::string& filename)
 {
     std::ifstream file(filename.c_str());
@@ -490,18 +471,4 @@ std::vector<Servers> SetServers(std::vector<Server> &servers) {
         grouped.push_back(group);
     }
     return grouped;
-}
-
-
-void printserversandposibleservers(std::vector<Servers> &servers)
-{
-    for (size_t i = 0; i < servers.size(); i++)
-    {
-        std::cout << "Server " << servers[i].Default.host << ":" << servers[i].Default.port << std::endl;
-        std::cout << "Posible Servers: " << std::endl;
-        for (size_t j = 0; j < servers[i].posibleServers.size(); j++)
-        {
-            std::cout << "\t" << servers[i].posibleServers[j].server_names[0] << ":" << servers[i].posibleServers[j].port << std::endl;
-        }
-    }
 }
