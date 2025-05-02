@@ -135,7 +135,7 @@
             .then(res => res.text().then(text => ({status: res.status, body: text})))
             .then(({status, body}) => {
                 if (status === 200) {
-                    showMessage("Dosya başarıyla silindi.", "success");
+                    showMessage("Dosya silme işleme alındı!", "success");
                 } else {
                     showMessage("Dosya silinirken bir hata oluştu: ", "error");
                 }
