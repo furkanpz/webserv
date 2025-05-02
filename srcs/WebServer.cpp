@@ -64,9 +64,8 @@ void WebServer::CGIHandle(Clients &client)
         
         std::string file = client.response.getFile().substr(cgi_root.length() + 1);
         std::string cgiPath = client.response.getCgiPath();
-        const char *argv[] = { cgiPath.c_str() ,file.c_str(), NULL};
+        const char *argv[] = { cgiPath.c_str(), "-Wignore" ,file.c_str(), NULL};
         execve(argv[0], const_cast<char *const *>(argv), environ);
-        std::cerr << "EXECVE ERROR" << std::endl;
         exit(1);
     }
 
@@ -278,7 +277,7 @@ void WebServer::client_send(int i) {
     }
 
     size_t  toSend = c.writeBuffer.size() - c.writeOffset;
-    ssize_t n      = ::send(c.fd,
+    ssize_t n      = send(c.fd,
                             c.writeBuffer.data() + c.writeOffset,
                             toSend,
                             0);
