@@ -4,10 +4,12 @@
 
 WebServer *g_server = NULL;
 std::vector<Servers> g_servers;
+std::vector<Server> PureServers;
 
 void ServerKill(int sig) {
     (void) sig;
     delete g_server;
+    PureServers.empty();
     Utils::printInfo("Servers killed");
     exit(1);
 }
@@ -18,7 +20,7 @@ int main(int ac, char **av)
     {
         try {
             Utils::printInfo("Parsing configuration file.");
-            std::vector<Server> PureServers = parse_config(av[1]);
+            PureServers = parse_config(av[1]);
             if (PureServers.size() == 0)
             {
                 std::cout << "\033[31m";
