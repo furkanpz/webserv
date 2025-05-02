@@ -548,6 +548,5 @@ std::string Utils::generateAutoIndex(const std::string& path, const std::string&
 }
 
 void Utils::printInfo(const std::string &info) {
-    std::cout << "\033[0;32m" << "[INFO] " << Utils::getTime() << ": " << info << std::endl;
-    std::cout << "\033[0m";
+    std::cout << "\033[0;32m" << "[INFO] " << Utils::getTime() << ": " << info << "\033[0m" << std::endl;
 }

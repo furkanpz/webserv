@@ -344,5 +344,5 @@ const char *WebServer::ServerExcp::what() const throw()
     return excp.c_str();
 }
 
-WebServer::ServerExcp::ServerExcp(const std::string &err) : excp(err + ": Couldn't create the server!") {}
+WebServer::ServerExcp::ServerExcp(const std::string &err) : excp("\033[31m[ERROR] " + err + ": Couldn't create the server!" + "\033[0m") {}
 WebServer::ServerExcp::~ServerExcp() throw() {}
