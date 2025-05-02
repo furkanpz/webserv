@@ -34,7 +34,7 @@ int main(int ac, char **av)
             if (PureServers.size() == 0)
             {
                 std::cout << "\033[31m";
-                std::cout << "[ERROR] " << Utils::getTime() << ": " << "No server found in the configuration file." << std::endl;
+                std::cout << "[ERROR] " << Utils::getTime() << ": " << "No server found in the configuration file." << "\033[0m" << std::endl;
                 return (1);
             }
             g_servers = SetServers(PureServers);
