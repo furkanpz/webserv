@@ -1,8 +1,6 @@
 #!/usr/bin/python3
 
 import cgi
-import sys
-from time import sleep
 import os
 
 UPLOAD_DIR = "../../uploads"

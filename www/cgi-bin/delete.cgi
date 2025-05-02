@@ -2,10 +2,8 @@
 
 import cgi
 import os
-import html
-import sys
 
-UPLOAD_DIR = "./uploads"
+UPLOAD_DIR = "../../uploads"
 
 
 form = cgi.FieldStorage()

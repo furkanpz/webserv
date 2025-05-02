@@ -199,7 +199,7 @@ std::string Utils::readFile(const std::string& fileName,
 
 
 bool Utils::wait_with_timeout(pid_t pid, int timeout_seconds) {
-    time_t start = time(NULL);
+    time_t start = std::time(NULL);
     
     while (true) {
         pid_t result = waitpid(pid, NULL, WNOHANG);
@@ -207,7 +207,7 @@ bool Utils::wait_with_timeout(pid_t pid, int timeout_seconds) {
             return true;
         else if (result == -1)
             return false;
-        if (time(NULL) - start >= timeout_seconds)
+        if (std::time(NULL) - start >= timeout_seconds)
             break;
     }
 

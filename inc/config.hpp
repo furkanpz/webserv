@@ -45,7 +45,6 @@ struct Server {
 	Server() : client_max_body_size(1024 * 1024), port(0){}
 };
 
-//valla şaka yok adamı sikerler!!!
 
 struct Servers {
     Server Default;

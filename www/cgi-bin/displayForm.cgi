@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import cgi
-from time import sleep
+
+
 form = cgi.FieldStorage()
 try :
     name = form.getvalue("name", None)

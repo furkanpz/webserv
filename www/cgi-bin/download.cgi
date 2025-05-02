@@ -2,8 +2,6 @@
 
 import cgi
 import os
-import html
-from urllib.parse import quote
 
 UPLOAD_DIR = "../../uploads"
 

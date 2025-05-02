@@ -99,7 +99,7 @@ std::vector<Server> parse_config(const std::string& filename)
                 {
                     if (!is_valid_ip(server_str))
 		    	    {
-                        std::cerr << "webserv: invalid host in \"host\" directive in " << filename << ":" << line_number << std::endl;
+                        std::cerr << "webserv: invalid host in \"listen\" directive in " << filename << ":" << line_number << std::endl;
                         file.close();
                         servers.clear();
                         return servers;
